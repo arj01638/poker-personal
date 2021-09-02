@@ -240,7 +240,7 @@ public class PokerrMain {
 					while (!nextCard) {
 						if (PRINT)
 							System.out.println("It's " + players.get(toPlay).name + "(" + toPlay + ")" + "'s turn");
-						playerAction(activePlayers().size() != 1  ? -1 : -2);
+						playerAction(-1);
 						better--;
 						toPlay = nextPlayer(toPlay);
 						if (better == 0)
@@ -466,6 +466,8 @@ public class PokerrMain {
 				&& bet + evaluation - globalFrontMoney > current.bank 
 				&& (current.bank - bet + globalFrontMoney < 0))
 			evaluation = 0;
+		if (bet == 0 && activePlayers().size() == 1)
+			forceEval = -2;
 
 		if (forceEval == -2) {
 			System.out.println(current.name + "(" + players.indexOf(current) + ")" + " is the last remaining...");
@@ -524,8 +526,8 @@ public class PokerrMain {
 
 									newPot.potAmt += newPot.callersAmt[players.indexOf(p)];
 									oldPot.potAmt -= newPot.callersAmt[players.indexOf(p)];
-									if (p.bank == 0)
-										newPot.players.remove(p);
+									//if (p.bank == 0)
+										//newPot.players.remove(p);
 								}
 							}
 							//copypasted calling code
@@ -539,7 +541,8 @@ public class PokerrMain {
 							tempPot.callersAmt[players.indexOf(current)] = tempPot.bet;
 						}
 					}
-					current.inTheHand = false;
+					if (!solo)
+						current.inTheHand = false;
 				} else {
 					for (Pot i : pots) {
 						frontMoney += i.callersAmt[players.indexOf(current)];
@@ -569,7 +572,8 @@ public class PokerrMain {
 					evaluateBetter();
 
 				if (!splitPot && current.bank == 0) {
-					current.inTheHand = false;
+					if (!solo)
+						current.inTheHand = false;
 					if (pots.get(0).bet != 0)
 						pots.add(0, new Pot(activePlayers(), 0));
 				}
