@@ -240,7 +240,7 @@ public class PokerrMain {
 					while (!nextCard) {
 						if (PRINT)
 							System.out.println("It's " + players.get(toPlay).name + "(" + toPlay + ")" + "'s turn");
-						playerAction(activePlayers().size() != 1 ? -1 : -2);
+						playerAction(activePlayers().size() != 1  ? -1 : -2);
 						better--;
 						toPlay = nextPlayer(toPlay);
 						if (better == 0)
@@ -524,6 +524,8 @@ public class PokerrMain {
 
 									newPot.potAmt += newPot.callersAmt[players.indexOf(p)];
 									oldPot.potAmt -= newPot.callersAmt[players.indexOf(p)];
+									if (p.bank == 0)
+										newPot.players.remove(p);
 								}
 							}
 							//copypasted calling code
