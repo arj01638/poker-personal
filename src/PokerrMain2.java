@@ -7,10 +7,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
-public class PokerrMain {
+public class PokerrMain2 {
 
 
-	final int ROUNDS = 1;
+	final int ROUNDS = 100;
 	boolean PRINT = true;
 	boolean SPEED = false;
 	final int BB = 500;
@@ -41,7 +41,7 @@ public class PokerrMain {
 
 	final String[] handIndex = new String[] {"HIGH CARD", "PAIR", "2 PAIR", "TRIPS", "STRAIGHT", "FLUSH", "FULL HOUSE", "FOUR OF A KIND", "STRAIGHT FLUSH", "ROYAL FLUSH"};
 
-	PokerrMain() {
+	PokerrMain2() {
 
 	} // PokerrMain
 
@@ -180,9 +180,9 @@ public class PokerrMain {
 				System.out.println(getBoard() + "\n" + Arrays.toString(firstPlayer.holeCards) + "\n" + Arrays.toString(firstPlayer.bestHand(board)));
 				throw new RuntimeException("full house");
 			}
-
+			
 		}
-
+		
 		for (int k = 0; k < ROUNDS; k++) {
 			iterations2 = 0;
 			iterations++;
@@ -223,14 +223,12 @@ public class PokerrMain {
 				playerAction(BB - pots.get(0).bet);
 				toPlay = nextPlayer(toPlay);
 
-
-
 				while (gameStage != 4) {
 					evaluateBetter();
 					while (!nextCard) {
 						if (PRINT)
 							System.out.println("It's " + players.get(toPlay).name + "(" + toPlay + ")" + "'s turn");
-						playerAction(players.get(toPlay).bank > 0 ? -1 : -2);
+						playerAction(-1);
 						better--;
 						toPlay = nextPlayer(toPlay);
 						if (better == 0)
@@ -418,62 +416,55 @@ public class PokerrMain {
 			if (p.inTheHand && p != current)
 				solo = false;
 		}
-		boolean splitPot = false;
+		//System.out.println("DEBUG: solo is " + solo);
+		if (!solo) {
+			boolean splitPot = false;
+			int bet = 0;
+			int globalFrontMoney = 0;
+			for (Pot i : pots) {
+				globalFrontMoney += i.callersAmt[players.indexOf(current)];
+				bet += i.bet;
+			}
+			int evaluation = 0;
+			if (forceEval == -1) {
+				evaluation = current.evaluate(bet, board);
+			} else {
+				evaluation = forceEval;
+			}
+			if (PRINT)
+				System.out.println(current.name + "(" + players.indexOf(current) + ")" + " evaluates: " + evaluation);
 
-		int bet = 0;
-		int globalFrontMoney = 0;
-		for (Pot i : pots) {
-			globalFrontMoney += i.callersAmt[players.indexOf(current)];
-			bet += i.bet;
-		}
+			//sanitize input
+			if (forceEval == -1 && bet + evaluation - globalFrontMoney > current.bank && (current.bank - bet + globalFrontMoney > 0))
+				evaluation = current.bank - bet + globalFrontMoney;
 
-		int evaluation = 0;
-		evaluation = forceEval == -1 ? current.evaluate(bet, board) : forceEval;
 
-		if (PRINT)
-			System.out.println(current.name + "(" + players.indexOf(current) + ")" + " evaluates: " + evaluation);
 
-		//sanitize input
-		if (forceEval == -1 && bet + evaluation - globalFrontMoney > current.bank && (current.bank - bet + globalFrontMoney > 0))
-			evaluation = current.bank - bet + globalFrontMoney;
-		if (forceEval == -1 && bet + evaluation - globalFrontMoney > current.bank && (current.bank - bet + globalFrontMoney < 0))
-			evaluation = 0;
 
-		if (forceEval == -2) {
-			System.out.println(current.name + "(" + players.indexOf(current) + ")" + " is all-in...");
-		} else {
-			//fold
+
+
+
+
+
+
+
 			if (evaluation < 0) {
+
 				if (PRINT)
 					System.out.println(current.name + "(" + players.indexOf(current) + ")" + " folds");
+				current.inTheHand = false;
 				for (Pot i : pots) {
 					if (i.players.size() != 0 && i.players.get(0) == current && i.players.size() == 1) {
-						current.bank += i.potAmt;
+						current.bank += i.callersAmt[players.indexOf(current)];
 						pots.remove(i);
 					} else {
 						i.players.remove(current);
 					}
 				}
-				//call/raise
-			} else {
-				
-				//error checking
-				if (!(evaluation == 0) && bet + evaluation < bet * 2 && !(bet + evaluation == current.bank + globalFrontMoney))
-					throw new RuntimeException("bet + eval < bet * 2");
-				if (forceEval == -1 && bet + evaluation > current.bank + globalFrontMoney)
-					throw new RuntimeException("bet + eval > bank + globalFrontMoney");
-				if (current.bank < 0)
-					throw new RuntimeException("bank < 0");
-				if (!(evaluation == 0 && bet == 0) && bet + evaluation < BB && forceEval != SB && !(bet + evaluation == current.bank + globalFrontMoney)) {
-					throw new RuntimeException("bet < BB");
-				}
-				
-				int frontMoney = 0;
-				pots.getFirst().bet += evaluation;
-				if (bet + evaluation - globalFrontMoney > current.bank) {
+			} else if (evaluation == 0) {
+				if (bet - globalFrontMoney > current.bank) {
 					splitPot = true;
 					for (int i = pots.size() - 1; i > -1; i--) {
-						frontMoney += pots.get(i).callersAmt[players.indexOf(current)];
 						if (pots.get(i).bet > current.bank + pots.get(i).callersAmt[players.indexOf(current)]) {
 							Pot oldPot = pots.get(i);
 							current.bank += oldPot.callersAmt[players.indexOf(current)];
@@ -488,18 +479,91 @@ public class PokerrMain {
 							newPot.players.remove(current);
 							for (PokerrPlayer p : oldPot.players) {
 								if (p != current && oldPot.callersAmt[players.indexOf(p)] > current.bank) {
+									//newPot.players.add(p);
 
 									newPot.callersAmt[players.indexOf(p)] = oldPot.callersAmt[players.indexOf(p)] - current.bank;
 									oldPot.callersAmt[players.indexOf(p)] -= newPot.callersAmt[players.indexOf(p)];
 
 									newPot.potAmt += newPot.callersAmt[players.indexOf(p)];
 									oldPot.potAmt -= newPot.callersAmt[players.indexOf(p)];
+									//if (newPot.callersAmt[players.indexOf(p)] > newPot.bet)
+									//newPot.bet = newPot.callersAmt[players.indexOf(p)];
 								}
 							}
 							//copypasted calling code
 							oldPot.potAmt += current.bank;
 							current.bank = 0;
 							oldPot.callersAmt[players.indexOf(current)] = oldPot.bet;
+							break;
+						} else {
+							Pot tempPot = pots.get(i);
+							tempPot.potAmt += tempPot.bet - tempPot.callersAmt[players.indexOf(current)];
+							current.bank -= tempPot.bet - tempPot.callersAmt[players.indexOf(current)];
+							tempPot.callersAmt[players.indexOf(current)] = tempPot.bet;
+
+						}
+					}
+					current.inTheHand = false;
+				} else {
+					int frontMoney = 0;
+					for (Pot i : pots) {
+						frontMoney += i.callersAmt[players.indexOf(current)];
+						i.potAmt += i.bet - i.callersAmt[players.indexOf(current)];
+						current.bank -= i.bet - i.callersAmt[players.indexOf(current)];
+						i.callersAmt[players.indexOf(current)] = i.bet;
+					}
+					if (bet - frontMoney == 0) {
+
+						if (PRINT)
+							System.out.println(current.name + "(" + players.indexOf(current) + ")" + " checks");
+					} else {
+
+						if (PRINT)
+							System.out.println(current.name + "(" + players.indexOf(current) + ")" + " calls to a total of " 
+									+ bet + " (an additional " + (bet  - frontMoney) + ")" );
+					}
+				}
+			} else {
+
+				if (PRINT)
+					System.out.println(current.name + "(" + players.indexOf(current) + ")" + " raises to " + (bet + evaluation));
+
+				if ((forceEval == SB && bet + evaluation == BB && current.bank < BB)
+						|| (forceEval == SB && bet + evaluation == SB && current.bank < SB)) {
+					/////////////////////////////////////////////////////
+					splitPot = true;
+					pots.getFirst().bet += evaluation;
+					for (int i = pots.size() - 1; i > -1; i--) {
+						if (pots.get(i).bet > current.bank + pots.get(i).callersAmt[players.indexOf(current)]) {
+							Pot oldPot = pots.get(i);
+							current.bank += oldPot.callersAmt[players.indexOf(current)];
+							oldPot.potAmt -= oldPot.callersAmt[players.indexOf(current)];
+							oldPot.callersAmt[players.indexOf(current)] = 0;
+							Pot newPot = new Pot(new LinkedList<PokerrPlayer>(), 0);
+							pots.add(pots.indexOf(oldPot), newPot);
+							oldPot.callersAmt[players.indexOf(current)] = current.bank;
+							newPot.bet = oldPot.bet - current.bank;
+							oldPot.bet = current.bank;
+							newPot.players = new LinkedList<PokerrPlayer>(new ArrayList<PokerrPlayer>(oldPot.players));
+							newPot.players.remove(current);
+							for (PokerrPlayer p : oldPot.players) {
+								if (p != current && oldPot.callersAmt[players.indexOf(p)] > current.bank) {
+									//newPot.players.add(p);
+
+									newPot.callersAmt[players.indexOf(p)] = oldPot.callersAmt[players.indexOf(p)] - current.bank;
+									oldPot.callersAmt[players.indexOf(p)] -= newPot.callersAmt[players.indexOf(p)];
+
+									newPot.potAmt += newPot.callersAmt[players.indexOf(p)];
+									oldPot.potAmt -= newPot.callersAmt[players.indexOf(p)];
+									//if (newPot.callersAmt[players.indexOf(p)] > newPot.bet)
+									//newPot.bet = newPot.callersAmt[players.indexOf(p)];
+								}
+							}
+							//copypasted calling code
+							oldPot.potAmt += current.bank;
+							current.bank = 0;
+							oldPot.callersAmt[players.indexOf(current)] = oldPot.bet;
+							break;
 						} else {
 							Pot tempPot = pots.get(i);
 							tempPot.potAmt += tempPot.bet - tempPot.callersAmt[players.indexOf(current)];
@@ -507,42 +571,153 @@ public class PokerrMain {
 							tempPot.callersAmt[players.indexOf(current)] = tempPot.bet;
 						}
 					}
+					current.inTheHand = false;
+					////////////////////////////////////////////////////////////////
 				} else {
+					if (bet + evaluation < bet * 2 && !(bet + evaluation == current.bank + globalFrontMoney))
+						throw new RuntimeException("bet + eval < bet * 2");
+					//if (bet + evaluation < bet * 2 && (bet + evaluation == current.bank + globalFrontMoney))
+					//System.out.println("eee");
+					if (bet > current.bank)
+						throw new RuntimeException("bet > bank");
+					//if (bet + evaluation > current.bank) 
+					//System.out.println("pee");
+					if (bet + evaluation > current.bank + globalFrontMoney)
+						throw new RuntimeException("bet + eval > bank + globalFrontMoney");
+					if (current.bank < 0)
+						throw new RuntimeException("bank < 0");
+					if (bet + evaluation < BB && forceEval != SB && !(bet + evaluation == current.bank + globalFrontMoney)) {
+						throw new RuntimeException("bet < BB");
+					}
+
+					pots.getFirst().bet += evaluation;
+
+					for (Pot i : pots) {
+						i.potAmt += i.bet - i.callersAmt[players.indexOf(current)];
+						current.bank -= i.bet - i.callersAmt[players.indexOf(current)];
+						i.callersAmt[players.indexOf(current)] = i.bet;
+					} // for
+				}
+				evaluateBetter();
+			} // if
+			if (!splitPot && current.inTheHand == true && current.bank == 0) {
+				current.inTheHand = false;
+				if (pots.get(0).bet == 0)
+					pots.add(0, new Pot(activePlayers(), 0));
+			}
+
+			//!solo
+		} else {
+			//copypasted call code///////////////////////////////////////////////////////////////
+			int bet = 0;
+			int globalFrontMoney = 0;
+			for (Pot i : pots) {
+				bet += i.bet;
+				globalFrontMoney += i.callersAmt[players.indexOf(current)];
+			}
+
+			int evaluation = current.evaluate(bet, board);
+			
+			HashSet<PokerrPlayer> totalPlayers = new HashSet<PokerrPlayer>();
+			for (Pot p : pots) {
+				for (PokerrPlayer pp : p.players)
+					totalPlayers.add(pp);
+			}
+			if (evaluation < 0 && activePlayers().size() == 1)
+				evaluation = 0;
+			
+			if (evaluation >= 0) {
+				if (bet - globalFrontMoney > current.bank) {
+					for (int i = pots.size() - 1; i > -1; i--) {
+						if (pots.get(i).bet > current.bank + pots.get(i).callersAmt[players.indexOf(current)]) {
+							Pot oldPot = pots.get(i);
+							current.bank += oldPot.callersAmt[players.indexOf(current)];
+							oldPot.potAmt -= oldPot.callersAmt[players.indexOf(current)];
+							oldPot.callersAmt[players.indexOf(current)] = 0;
+							Pot newPot = new Pot(new LinkedList<PokerrPlayer>(), 0);
+							pots.add(pots.indexOf(oldPot), newPot);
+							oldPot.callersAmt[players.indexOf(current)] = current.bank;
+							newPot.bet = oldPot.bet - current.bank;
+							oldPot.bet = current.bank;
+							newPot.players = new LinkedList<PokerrPlayer>(new ArrayList<PokerrPlayer>(oldPot.players));
+							newPot.players.remove(current);
+							for (PokerrPlayer p : oldPot.players) {
+								if (p != current && oldPot.callersAmt[players.indexOf(p)] > current.bank) {
+									//newPot.players.add(p);
+
+									newPot.callersAmt[players.indexOf(p)] = oldPot.callersAmt[players.indexOf(p)] - current.bank;
+									oldPot.callersAmt[players.indexOf(p)] -= newPot.callersAmt[players.indexOf(p)];
+
+									newPot.potAmt += newPot.callersAmt[players.indexOf(p)];
+									oldPot.potAmt -= newPot.callersAmt[players.indexOf(p)];
+									//if (newPot.callersAmt[players.indexOf(p)] > newPot.bet)
+									//newPot.bet = newPot.callersAmt[players.indexOf(p)];
+								}
+							}
+							//copypasted calling code
+							oldPot.potAmt += current.bank;
+							current.bank = 0;
+							oldPot.callersAmt[players.indexOf(current)] = oldPot.bet;
+							break;
+						} else {
+							Pot tempPot = pots.get(i);
+							tempPot.potAmt += tempPot.bet - tempPot.callersAmt[players.indexOf(current)];
+							current.bank -= tempPot.bet - tempPot.callersAmt[players.indexOf(current)];
+							tempPot.callersAmt[players.indexOf(current)] = tempPot.bet;
+
+						}
+					}
+				} else {
+					int frontMoney = 0;
 					for (Pot i : pots) {
 						frontMoney += i.callersAmt[players.indexOf(current)];
 						i.potAmt += i.bet - i.callersAmt[players.indexOf(current)];
 						current.bank -= i.bet - i.callersAmt[players.indexOf(current)];
 						i.callersAmt[players.indexOf(current)] = i.bet;
 					}
-				}
+					if (bet - frontMoney == 0) {
 
-				//prints
-				if (PRINT) {
-					if (solo)
-						System.out.println(current.name + "(" + players.indexOf(current) + ")" + " is the last one remaining");
-					if (evaluation > 0) {
-						System.out.println(current.name + "(" + players.indexOf(current) + ")" + " raises to " + (bet + evaluation));
-					} else if (bet - frontMoney == 0) {
-						System.out.println(current.name + "(" + players.indexOf(current) + ")" + " checks");
+						if (PRINT)
+							System.out.println(current.name + "(" + players.indexOf(current) + ")" + " checks");
 					} else {
-						System.out.println(current.name + "(" + players.indexOf(current) + ")" + " calls to a total of " 
-								+ bet + " (an additional " + (bet  - frontMoney) + ")" );
+
+						if (PRINT)
+							System.out.println(current.name + "(" + players.indexOf(current) + ")" + " calls to a total of " 
+									+ bet + " (an additional " + (bet  - frontMoney) + ")" );
 					}
 				}
-
-				
-
-				if (evaluation > 0)
-					evaluateBetter();
-
-				if (!splitPot && current.bank == 0) {
-					if (pots.get(0).bet != 0)
-						pots.add(0, new Pot(activePlayers(), 0));
+				///////////////////////////////////////////////////////////////////////////////
+			} else {
+				//copypasted fold code
+				if (PRINT)
+					System.out.println(current.name + "(" + players.indexOf(current) + ")" + " folds");
+				//current.inTheHand = false;
+				for (Pot i : pots) {
+					if (i.players.size() != 0 && i.players.get(0) == current && i.players.size() == 1) {
+						current.bank += i.callersAmt[players.indexOf(current)];
+						//pots.remove(i);
+					} else {
+						i.players.remove(current);
+					}
 				}
+				totalPlayers.remove(current);
+				current.inTheHand = false;
+				for (PokerrPlayer p : players) {
+					if (totalPlayers.contains(p)) {
+						p.inTheHand = true;
+						break;
+					} // if
+				} // for
 			}
+
+			better = 1;
+
+			if (PRINT)
+				System.out.println(current.name + "(" + players.indexOf(current) + ")" + " is the last one remaining");
 		}
 		if (PRINT)
 			printDebug(1);
+
 		if (PRINT)
 			System.out.println("");
 	}
