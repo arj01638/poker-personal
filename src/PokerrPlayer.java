@@ -2,7 +2,7 @@ import java.util.Arrays;
 import java.util.Collections;
 
 public abstract class PokerrPlayer {
-	
+
 	final int BB = 500;
 	final int SB = BB / 2;
 	final int STARTING_BANK = 10000;
@@ -20,11 +20,13 @@ public abstract class PokerrPlayer {
 	public double getTotalWinnings() {
 		return totalWinnings;
 	}
-	
+
 	// return -1 = fold
 	// return 0 = call
 	// return >0 = bet/raise
 	abstract int evaluate(int betfacing, Card[] board);
+
+
 
 	public int[] strength(Card[] ce) {
 		int[] CEStrength = new int[] {0,0,0,0};
@@ -101,7 +103,7 @@ public abstract class PokerrPlayer {
 				}
 			}
 		}
-		
+
 		//flush
 		if (ce[3] != null && ce[4] != null && ce[0].suit == ce[1].suit 
 				&& ce[1].suit == ce[2].suit 
@@ -112,11 +114,14 @@ public abstract class PokerrPlayer {
 				CEStrength[2] = ce[0].value;
 			}
 		}
-		
+
 		return CEStrength;
 	} // strength
-	
-	public Card[] bestHand(Card[] board) {
+
+
+
+
+	public Card[] bestHand(Card[] board, boolean useHoleCards) {
 		Card[] toReturn = new Card[5];
 		Card[] ce = new Card[5];
 		int[] CEStrength = new int[]{-1,-1};
@@ -125,26 +130,28 @@ public abstract class PokerrPlayer {
 			return Arrays.copyOf(holeCards, 2);
 		} else {
 			//hand rankings			
-			int count = 2;
+			int count = useHoleCards ? 2 : 0;
 			for (Card c : board) {
 				if (c != null)
 					count++;
 			}
 			Card[] raw = new Card[count];
-			raw[0] = holeCards[0];
-			raw[1] = holeCards[1];
+			if (useHoleCards) {
+				raw[0] = holeCards[0];
+				raw[1] = holeCards[1];
+			}
 			for (int i = 0; i < 5; i++) {
 				if (board[i] != null)
-					raw[i + 2] = board[i];
+					raw[i + (useHoleCards ? 2 : 0)] = board[i];
 			}
 			Permutations<Card> perm = new Permutations<Card>(raw);
 			while(perm.hasNext()) {
 				Card[] ce2 = perm.next();
 				//trim to 5 cards
 				ce = Arrays.copyOf(ce2, 5);
-				
+
 				CEStrength = strength(ce);
-				
+
 				if (CEStrength[0] > TRStrength[0]) {
 					TRStrength = CEStrength;
 					toReturn = ce;
@@ -155,10 +162,53 @@ public abstract class PokerrPlayer {
 					TRStrength = CEStrength;
 					toReturn = ce;
 				} else if (CEStrength[0] == TRStrength[0] && CEStrength[2] == TRStrength[2] && CEStrength[3] == TRStrength[3]) {
-					if (CEStrength[0] == 6)
-						break;
-					if (ce[4].value > toReturn[4].value)
-						toReturn = ce;
+					if (CEStrength[0] != 6) {
+						if (ce[4] != null && CEStrength[0] == 2 && ce[4].value > toReturn[4].value) {
+							toReturn = ce;
+						} else if (CEStrength[0] == 0
+								|| CEStrength[0] == 1
+								|| CEStrength[0] == 2
+								|| CEStrength[0] == 3
+								|| CEStrength[0] == 7) {
+							int count2 = 0;
+							for (int i = 0; i < 5; i++) {
+								count2 += toReturn[i] != null ? 1 : 0;
+							}
+							Integer[] trVals = new Integer[count2];
+							Integer[] ceVals = new Integer[count2];
+							for (int i = 0; i < count2; i++) {
+								trVals[i] = toReturn[i].value;
+								ceVals[i] = ce[i].value;
+							}
+							/*Integer[] trVals = new Integer[] {
+									toReturn[0].value,
+									toReturn[1].value,
+									toReturn[2].value,
+									toReturn[3].value,
+									toReturn[4].value
+							};
+							Integer[] ceVals = new Integer[] {
+									ce[0].value,
+									ce[1].value,
+									ce[2].value,
+									ce[3].value,
+									ce[4].value
+							};*/
+
+							Arrays.sort(trVals, Collections.reverseOrder());
+							Arrays.sort(ceVals, Collections.reverseOrder());
+
+							for (int i = 0; i < count2; i++) {
+								if (trVals[i] < ceVals[i]) {
+									toReturn = ce;
+									break;
+								}
+								if (trVals[i] > ceVals[i]) {
+									break;
+								}
+							} // for
+						}
+					}
 					/*Integer[] trVals = new Integer[] {
 							toReturn[0].value,
 							toReturn[1].value,
@@ -186,8 +236,8 @@ public abstract class PokerrPlayer {
 							break;
 						}
 					} // for*/
-					
-					
+
+
 				} // if
 			}
 		}
@@ -202,7 +252,7 @@ public abstract class PokerrPlayer {
 		if (board[4] == null)
 			return 2;
 		return 3;
-		
+
 	}
-	
+
 }

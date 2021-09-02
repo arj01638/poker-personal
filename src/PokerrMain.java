@@ -2,7 +2,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
@@ -10,7 +9,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public class PokerrMain {
 
 
-	final int ROUNDS = 1;
+	final int ROUNDS = 1000;
 	boolean PRINT = true;
 	boolean SPEED = false;
 	final int BB = 500;
@@ -103,7 +102,7 @@ public class PokerrMain {
 				if (getGameStage(board) == 0) {
 					return 0;
 				} else {
-					if (strength(bestHand(board))[0] > 0)
+					if (strength(bestHand(board, true))[0] > 0)
 						return bank - betfacing;
 					if (betfacing == 0)
 						return 0;
@@ -123,7 +122,7 @@ public class PokerrMain {
 				if (getGameStage(board) == 0) {
 					return 0;
 				} else {
-					if (strength(bestHand(board))[0] > 1)
+					if (strength(bestHand(board, true))[0] > 1)
 						return bank - betfacing;
 					if (betfacing == 0)
 						return 0;
@@ -143,7 +142,8 @@ public class PokerrMain {
 				if (getGameStage(board) == 0) {
 					return 0;
 				} else {
-					if (strength(bestHand(board))[0] > 0 && strength(bestHand(board))[0] > strength(board)[0])
+					if (strength(bestHand(board, true))[0] > 0 
+							&& strength(bestHand(board, true))[0] > strength(bestHand(board, false))[0])
 						return bank - betfacing;
 					if (betfacing == 0)
 						return 0;
@@ -176,9 +176,15 @@ public class PokerrMain {
 			board[2] = new Card(2,1);
 			board[3] = new Card(14,3);
 			board[4] = new Card(5,3);
-			if (firstPlayer.strength(firstPlayer.bestHand(board))[0] != 6) {
-				System.out.println(getBoard() + "\n" + Arrays.toString(firstPlayer.holeCards) + "\n" + Arrays.toString(firstPlayer.bestHand(board)));
+			if (firstPlayer.strength(firstPlayer.bestHand(board, true))[0] != 6) {
+				System.out.println(getBoard() + "\n" 
+						+ Arrays.toString(firstPlayer.holeCards) + "\n" 
+						+ Arrays.toString(firstPlayer.bestHand(board,true)));
 				throw new RuntimeException("full house");
+			}
+			if (firstPlayer.strength(firstPlayer.bestHand(board, false))[0] != 1) {
+				System.out.println(firstPlayer.strength(board)[0]);
+				throw new RuntimeException("board strength");
 			}
 
 		}
@@ -220,7 +226,11 @@ public class PokerrMain {
 				if (PRINT)
 					System.out.println(players.get(BBpos).name + "(" + BBpos + ")" + " puts in BB (" + BB + ")");
 				toPlay = BBpos;
-				playerAction(BB - pots.get(0).bet);
+				int totalBets = 0;
+				for (Pot p : pots) {
+					totalBets += p.bet;
+				}
+				playerAction(BB - totalBets);
 				toPlay = nextPlayer(toPlay);
 
 
@@ -230,7 +240,7 @@ public class PokerrMain {
 					while (!nextCard) {
 						if (PRINT)
 							System.out.println("It's " + players.get(toPlay).name + "(" + toPlay + ")" + "'s turn");
-						playerAction(players.get(toPlay).bank > 0 ? -1 : -2);
+						playerAction(activePlayers().size() != 1 ? -1 : -2);
 						better--;
 						toPlay = nextPlayer(toPlay);
 						if (better == 0)
@@ -294,20 +304,32 @@ public class PokerrMain {
 		}
 		return activePlayers;
 	} // activePlayers
+	
+	/*LinkedList<PokerrPlayer> unfoldedPlayers() {
+		LinkedList<PokerrPlayer> activePlayers = new LinkedList<PokerrPlayer>();
+		for(PokerrPlayer p : players) {
+			for (Pot po : pots) {
+				if (po.players.contains(p)) {
+					activePlayers.add(p);
+				}
+			}
+		}
+		return activePlayers;
+	} // activePlayers*/
 
 	void evaluateBetter() {
 		better = 0;
 		for (PokerrPlayer p : players) {
 			if (p.inTheHand)
 				better++;
-		} // for
+		} // for*
 	} // evaluateBetter
 
 	void showdown(int pot, LinkedList<PokerrPlayer> activePlayers) {
 		PokerrPlayer winner = activePlayers.get(0);
 		for(PokerrPlayer p : activePlayers) {
-			Card[] winnerBestHand = winner.bestHand(board);
-			Card[] pBestHand = p.bestHand(board);
+			Card[] winnerBestHand = winner.bestHand(board, true);
+			Card[] pBestHand = p.bestHand(board, true);
 			if (p.strength(pBestHand)[0] > winner.strength(winnerBestHand)[0]) {
 				winner = p;
 			} else if (p.strength(pBestHand)[0] == winner.strength(winnerBestHand)[0] && p != winner) {
@@ -353,7 +375,7 @@ public class PokerrMain {
 		LinkedList<PokerrPlayer> winners = new LinkedList<PokerrPlayer>();
 		winners.add(winner);
 		for(PokerrPlayer p : activePlayers) {
-			Card[] winnerBestHand = winner.bestHand(board);
+			Card[] winnerBestHand = winner.bestHand(board, true);
 			Integer[] winnerVals = new Integer[] {
 					winnerBestHand[0].value,
 					winnerBestHand[1].value,
@@ -363,7 +385,7 @@ public class PokerrMain {
 			};
 			Arrays.sort(winnerVals, Collections.reverseOrder());
 
-			Card[] pBestHand = p.bestHand(board);
+			Card[] pBestHand = p.bestHand(board, true);
 			Integer[] pVals = new Integer[] {
 					pBestHand[0].value,
 					pBestHand[1].value,
@@ -434,13 +456,19 @@ public class PokerrMain {
 			System.out.println(current.name + "(" + players.indexOf(current) + ")" + " evaluates: " + evaluation);
 
 		//sanitize input
-		if (forceEval == -1 && bet + evaluation - globalFrontMoney > current.bank && (current.bank - bet + globalFrontMoney > 0))
+		if (forceEval == -1 
+				&& evaluation != -1
+				&& bet + evaluation - globalFrontMoney > current.bank 
+				&& (current.bank - bet + globalFrontMoney > 0))
 			evaluation = current.bank - bet + globalFrontMoney;
-		if (forceEval == -1 && bet + evaluation - globalFrontMoney > current.bank && (current.bank - bet + globalFrontMoney < 0))
+		if (forceEval == -1 
+				&& evaluation != -1
+				&& bet + evaluation - globalFrontMoney > current.bank 
+				&& (current.bank - bet + globalFrontMoney < 0))
 			evaluation = 0;
 
 		if (forceEval == -2) {
-			System.out.println(current.name + "(" + players.indexOf(current) + ")" + " is all-in...");
+			System.out.println(current.name + "(" + players.indexOf(current) + ")" + " is the last remaining...");
 		} else {
 			//fold
 			if (evaluation < 0) {
@@ -454,20 +482,22 @@ public class PokerrMain {
 						i.players.remove(current);
 					}
 				}
+				if (!solo)
+					current.inTheHand = false;
 				//call/raise
 			} else {
-				
+
 				//error checking
 				if (!(evaluation == 0) && bet + evaluation < bet * 2 && !(bet + evaluation == current.bank + globalFrontMoney))
 					throw new RuntimeException("bet + eval < bet * 2");
-				if (forceEval == -1 && bet + evaluation > current.bank + globalFrontMoney)
+				if (forceEval == -1 && evaluation != 0 && bet + evaluation > current.bank + globalFrontMoney)
 					throw new RuntimeException("bet + eval > bank + globalFrontMoney");
 				if (current.bank < 0)
 					throw new RuntimeException("bank < 0");
-				if (!(evaluation == 0 && bet == 0) && bet + evaluation < BB && forceEval != SB && !(bet + evaluation == current.bank + globalFrontMoney)) {
+				if (!(evaluation == 0) && bet + evaluation < BB && forceEval != SB && !(bet + evaluation == current.bank + globalFrontMoney)) {
 					throw new RuntimeException("bet < BB");
 				}
-				
+
 				int frontMoney = 0;
 				pots.getFirst().bet += evaluation;
 				if (bet + evaluation - globalFrontMoney > current.bank) {
@@ -507,6 +537,7 @@ public class PokerrMain {
 							tempPot.callersAmt[players.indexOf(current)] = tempPot.bet;
 						}
 					}
+					current.inTheHand = false;
 				} else {
 					for (Pot i : pots) {
 						frontMoney += i.callersAmt[players.indexOf(current)];
@@ -530,12 +561,13 @@ public class PokerrMain {
 					}
 				}
 
-				
+
 
 				if (evaluation > 0)
 					evaluateBetter();
 
 				if (!splitPot && current.bank == 0) {
+					current.inTheHand = false;
 					if (pots.get(0).bet != 0)
 						pots.add(0, new Pot(activePlayers(), 0));
 				}
@@ -616,7 +648,7 @@ public class PokerrMain {
 					System.out.println(players.get(i).name + "(" + i + ")" + " was not dealt in this hand.");
 				} else {
 					PokerrPlayer p = players.get(i);
-					Card[] pBestHand = p.bestHand(board);
+					Card[] pBestHand = p.bestHand(board, true);
 					System.out.println(p.name + "(" + i + ")" + " cards:  " + p.holeCards[0] + "|" + p.holeCards[1]
 							+ " (besthand: " + Arrays.toString(pBestHand) + ")");
 					System.out.println(p.name + "(" + i + ")" + " strength:  " + p.strength(pBestHand)[0] 
