@@ -517,8 +517,8 @@ public class PokerrMain {
 							newPot.bet = oldPot.bet - current.bank;
 							oldPot.bet = current.bank;
 							newPot.players = new LinkedList<PokerrPlayer>();//new LinkedList<PokerrPlayer>(new ArrayList<PokerrPlayer>(oldPot.players));
-							newPot.players.add(current);
-							newPot.players.remove(current);
+							//newPot.players.add(current);
+							//newPot.players.remove(current);
 							for (PokerrPlayer p : oldPot.players) {
 								if (p != current && oldPot.callersAmt[players.indexOf(p)] > current.bank) {
 
@@ -540,6 +540,8 @@ public class PokerrMain {
 							tempPot.potAmt += tempPot.bet - tempPot.callersAmt[players.indexOf(current)];
 							current.bank -= tempPot.bet - tempPot.callersAmt[players.indexOf(current)];
 							tempPot.callersAmt[players.indexOf(current)] = tempPot.bet;
+							if (!tempPot.players.contains(current))
+								tempPot.players.add(current);
 						}
 					}
 					if (!solo)
