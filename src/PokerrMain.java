@@ -468,6 +468,9 @@ public class PokerrMain {
 			evaluation = 0;
 		if (bet == 0 && activePlayers().size() == 1)
 			forceEval = -2;
+		if (solo && evaluation == -1) {
+			evaluation = 0;
+		}
 
 		if (forceEval == -2) {
 			System.out.println(current.name + "(" + players.indexOf(current) + ")" + " is the last remaining...");
@@ -552,6 +555,8 @@ public class PokerrMain {
 						i.potAmt += i.bet - i.callersAmt[players.indexOf(current)];
 						current.bank -= i.bet - i.callersAmt[players.indexOf(current)];
 						i.callersAmt[players.indexOf(current)] = i.bet;
+						if (!i.players.contains(current))
+							i.players.add(current);
 					}
 				}
 
