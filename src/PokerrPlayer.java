@@ -12,6 +12,7 @@ public abstract class PokerrPlayer {
 	public boolean allIn = false;
 	public double totalWinnings = 0;
 	public String name = "";
+	public int frontMoney = 0;
 
 	PokerrPlayer() {
 		bank = STARTING_BANK;
