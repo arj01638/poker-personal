@@ -106,7 +106,7 @@ public class PokerrMain {
 					return 0;
 				} else {
 					if (strength(bestHand(board, true))[0] > 0)
-						return bank - betfacing;
+						return bank - betfacing > 0 ? bank - betfacing : 0;
 					if (betfacing == 0)
 						return 0;
 					return -1;
@@ -126,7 +126,7 @@ public class PokerrMain {
 					return 0;
 				} else {
 					if (strength(bestHand(board, true))[0] > 1)
-						return bank - betfacing;
+						return bank - betfacing > 0 ? bank - betfacing : 0;
 					if (betfacing == 0)
 						return 0;
 					return -1;
@@ -147,7 +147,7 @@ public class PokerrMain {
 				} else {
 					if (strength(bestHand(board, true))[0] > 0 
 							&& strength(bestHand(board, true))[0] > strength(bestHand(board, false))[0])
-						return bank - betfacing;
+						return bank - betfacing > 0 ? bank - betfacing : 0;
 					if (betfacing == 0)
 						return 0;
 					return -1;
@@ -547,8 +547,6 @@ public class PokerrMain {
 			evaluation = 0;
 		if (bet - globalFrontMoney == 0 && activePlayers().size() == 1)
 			forceEval = -2;
-		//if (solo && evaluation == -1 && bet == 0)
-		//	evaluation = 0;
 		if (evaluation <= -1 && bet == 0)
 			evaluation = 0;
 

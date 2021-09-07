@@ -1,5 +1,5 @@
 
-public class Card {
+public class Card implements Comparable<Card> {
 
 	int value;
 	int suit;
@@ -12,6 +12,11 @@ public class Card {
 	@Override
 	public String toString() {
 		return Integer.toString(value) + "." + Integer.toString(suit);
+	}
+
+	@Override
+	public int compareTo(Card o) {
+		return o.value - this.value;
 	}
 	
 }
