@@ -19,4 +19,8 @@ public class Card implements Comparable<Card> {
 		return o.value - this.value;
 	}
 	
+	public int compareToS(Card o) {
+		return o.suit - this.suit;
+	}
+	
 }

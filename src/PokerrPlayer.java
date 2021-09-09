@@ -151,14 +151,24 @@ public abstract class PokerrPlayer {
 			Permutations<Card> perm = new Permutations<Card>(raw);
 			while(perm.hasNext()) {
 				Card[] ce2 = perm.next();
-				//trim to 5 cards
 				ce = Arrays.copyOf(ce2, 5);
 
-				if (Arrays.equals(ce, toReturn))
+				boolean equSuit = true;
+				for (int i = 0; i < 5; i++) {
+					if (ce[i] != null && toReturn[i] != null) {
+						if (toReturn[i].suit != ce[i].suit) {
+							equSuit = false;
+							break;
+						}
+					}
+				}
+				if (equSuit && Arrays.equals(ce, toReturn))
 					continue;
 				
 				CEStrength = strength(ce);
-
+				
+				if (CEStrength[0] < TRStrength[0])
+					continue;
 				
 				if (CEStrength[0] > TRStrength[0]) {
 					TRStrength = CEStrength;
@@ -181,61 +191,8 @@ public abstract class PokerrPlayer {
 							if (Arrays.compare(toReturn, ce) > 0) {
 								toReturn = ce;
 							}
-							
-							/*int count2 = 0;
-							for (int i = 0; i < 5; i++) {
-								count2 += toReturn[i] != null ? 1 : 0;
-							}
-							Integer[] trVals = new Integer[count2];
-							Integer[] ceVals = new Integer[count2];
-							for (int i = 0; i < count2; i++) {
-								trVals[i] = toReturn[i].value;
-								ceVals[i] = ce[i].value;
-							}
-
-							Arrays.sort(trVals);//, Collections.reverseOrder());
-							Arrays.sort(ceVals);//, Collections.reverseOrder());
-
-							for (int i = 0; i < count2; i++) {
-								if (trVals[i] < ceVals[i]) {
-									toReturn = ce;
-									break;
-								}
-								if (trVals[i] > ceVals[i]) {
-									break;
-								}
-							} // for*/
 						}
 					}
-					/*Integer[] trVals = new Integer[] {
-							toReturn[0].value,
-							toReturn[1].value,
-							toReturn[2].value,
-							toReturn[3].value,
-							toReturn[4].value
-					};
-					Integer[] ceVals = new Integer[] {
-							ce[0].value,
-							ce[1].value,
-							ce[2].value,
-							ce[3].value,
-							ce[4].value
-					};
-
-					Arrays.sort(trVals, Collections.reverseOrder());
-					Arrays.sort(ceVals, Collections.reverseOrder());
-
-					for (int i = 0; i < 5; i++) {
-						if (trVals[i] < ceVals[i]) {
-							toReturn = ce;
-							break;
-						}
-						if (trVals[i] > ceVals[i]) {
-							break;
-						}
-					} // for*/
-
-
 				} // if
 			}
 		}
