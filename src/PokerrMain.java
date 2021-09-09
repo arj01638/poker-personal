@@ -43,18 +43,20 @@ public class PokerrMain {
 
 	PrintWriter out;
 
-	PokerrMain() {
+	StringBuilder globalString;
 
+	PokerrMain() {
+		globalString = new StringBuilder("");
 	} // PokerrMain
 
 
 	void definePlayers() {
-		
+
 		/*
 		 * Folds ~1/11 of the time.
 		 * Else, makes random move.
 		 */
-		addPlayer("Dornk", new PokerrPlayer() {
+		addPlayer(true, "Dornk", new PokerrPlayer() {
 			@Override
 			int evaluate(int betfacing, Card[] board) {
 				int decision = (BB/5)*ThreadLocalRandom.current().nextInt(-1, 10);
@@ -77,7 +79,7 @@ public class PokerrMain {
 		 * Always minbets if no bet is facing it.
 		 * Never folds.	
 		 */
-		addPlayer("OptyMB", new PokerrPlayer() {
+		addPlayer(true,"OptyMB", new PokerrPlayer() {
 			@Override
 			public int evaluate(int betfacing, Card[] board) {
 				if (betfacing > bank)
@@ -99,7 +101,7 @@ public class PokerrMain {
 		 * Goes all-in if it has anything better than a high card.
 		 * Folds otherwise (except pre-flop).
 		 */
-		addPlayer("Alli_MK1", new PokerrPlayer() {
+		addPlayer(false,"Alli_MK1", new PokerrPlayer() {
 			@Override
 			public int evaluate(int betfacing, Card[] board) {
 				if (getGameStage(board) == 0) {
@@ -107,9 +109,9 @@ public class PokerrMain {
 				} else {
 					if (strength(bestHand(board, true))[0] > 0)
 						return bank - betfacing > 0 ? bank - betfacing : 0;
-					if (betfacing == 0)
-						return 0;
-					return -1;
+						if (betfacing == 0)
+							return 0;
+						return -1;
 				}
 			}
 		}); // StrategicAllIn	
@@ -119,7 +121,7 @@ public class PokerrMain {
 		 * Goes all-in if it has anything better than a pair.
 		 * Folds otherwise (except pre-flop).
 		 */
-		addPlayer("Alli_MK2", new PokerrPlayer() {
+		addPlayer(false,"Alli_MK2", new PokerrPlayer() {
 			@Override
 			public int evaluate(int betfacing, Card[] board) {
 				if (getGameStage(board) == 0) {
@@ -127,9 +129,9 @@ public class PokerrMain {
 				} else {
 					if (strength(bestHand(board, true))[0] > 1)
 						return bank - betfacing > 0 ? bank - betfacing : 0;
-					if (betfacing == 0)
-						return 0;
-					return -1;
+						if (betfacing == 0)
+							return 0;
+						return -1;
 				}
 			}
 		});
@@ -139,7 +141,7 @@ public class PokerrMain {
 		 * Goes all-in if it has anything better than a high card that's not on the board.
 		 * Folds otherwise (except pre-flop).
 		 */
-		addPlayer("Alli_MK3", new PokerrPlayer() {
+		addPlayer(false,"Alli_MK3", new PokerrPlayer() {
 			@Override
 			public int evaluate(int betfacing, Card[] board) {
 				if (getGameStage(board) == 0) {
@@ -148,40 +150,111 @@ public class PokerrMain {
 					if (strength(bestHand(board, true))[0] > 0 
 							&& strength(bestHand(board, true))[0] > strength(bestHand(board, false))[0])
 						return bank - betfacing > 0 ? bank - betfacing : 0;
-					if (betfacing == 0)
-						return 0;
-					return -1;
+						if (betfacing == 0)
+							return 0;
+						return -1;
 				}
 			}
 		});
-		
+
 		/*
-		 * Calls/raises amounts equal to a gradient of its bank depending on hand strength.
+		 * Goes all-in if it has anything better than a pair that's not on the board.
+		 * Folds otherwise (except pre-flop).
 		 *
-		addPlayer("Inteligente", new PokerrPlayer() {
+		addPlayer("Alli_MK4", new PokerrPlayer() {
 			@Override
 			public int evaluate(int betfacing, Card[] board) {
-				int evaluation = 0;
-				double multiplier = 0.00;
-				if (getGameStage(board) == 0)
+				if (getGameStage(board) == 0) {
 					return 0;
-				multiplier = (strength(bestHand(board, true))[0] * 0.1);
-				if (((bank * multiplier) - frontMoney) < betfacing)
-					return -1;
-				evaluation = (int) (((bank * multiplier) - frontMoney) - betfacing);
-				if (evaluation + betfacing < BB)
-					return BB;
-				if (evaluation < betfacing)
-					return betfacing;
-				return evaluation;
+				} else {
+					if (strength(bestHand(board, true))[0] > 1 
+							&& strength(bestHand(board, true))[0] > strength(bestHand(board, false))[0])
+						return bank - betfacing > 0 ? bank - betfacing : 0;
+						if (betfacing == 0)
+							return 0;
+						return -1;
+				}
 			}
 		});*/
+
+		/*
+		 * 
+		 */
+		addPlayer(true,"Add'y", new PokerrPlayer() {
+			LinkedList<int[]> keys = new LinkedList<int[]>();
+			@Override
+			public int evaluate(int betfacing, Card[] board) {
+				// betfacing, strength, decision, outcome
+				int[] bestKey = new int[]{0,0,0,1};
+				// arbitrarily high to ensure is replaced
+				int bestEval = 99999;
+				if (keys.size() == 0)
+					keys.add(bestKey);
+
+				double toReturn = 0;				
+				int count = 0;
+
+				int[] strength = strength(bestHand(board,true));
+				int val = strength[0];
+				//int val2 = strength[2];
+
+				for (int[] key : keys) {
+					int eval = (int) (Math.pow(key[0] - betfacing,2) + (5000*Math.pow(key[1] - val,2)));
+					if (eval < bestEval) {
+						bestEval = eval;
+						bestKey = key;
+						toReturn = bestKey[2];
+						count = 0;
+					} else if (bestKey[0] == key[0] && bestKey[1] == key[1]) {
+						if (key[3] == 1) {
+							toReturn = (toReturn + key[2]) / 2;
+						} else if (key[2] == 0) {
+							toReturn = (toReturn + -1) / 2;
+						} else {
+							toReturn = (toReturn + 0) / 2;
+						}
+						count++;
+
+					}
+				}
+				if (count < 300/(val+1)) {
+					toReturn = Math.round(Math.random() - 0.75);
+					qPrint("rand bvv");
+				}
+				qPrint(Double.toString(toReturn));
+				int toReturnInt = (int) Math.round(toReturn);
+				if (toReturnInt > 0)
+					toReturnInt = 0;
+				keys.add(new int[] {betfacing,val,toReturnInt,0});
+				qPrint(Arrays.toString(bestKey));
+				qPrint(Arrays.toString(keys.getLast()));
+				return toReturnInt;
+			}
+			@Override
+			void winFdbk(boolean win) {
+				if (win) {
+					keys.getLast()[3] = 1;
+					keys.getLast()[2]++;
+				}
+				//keys.getLast()[3] = win ? 1 : 0;
+			}
+		});
 	}
 
-	void addPlayer(String y, PokerrPlayer x) {
-		x.name = y;
-		bankSum += x.bank;
-		players.add(x);
+	void qPrint(String x) {
+		globalString.append(x + "\n");
+	}
+
+	void qPrintNN(String x) {
+		globalString.append(x);
+	}
+
+	void addPlayer(boolean toggle, String y, PokerrPlayer x) {
+		if (toggle) {
+			x.name = y;
+			bankSum += x.bank;
+			players.add(x);
+		}
 	} // addPlayer
 
 	void test() {
@@ -195,16 +268,21 @@ public class PokerrMain {
 		board[3] = new Card(14,3);
 		board[4] = new Card(5,3);
 		if (firstPlayer.strength(firstPlayer.bestHand(board, true))[0] != 6) {
-			System.out.println(getBoard() + "\n" 
+			qPrint(getBoard() + "\n" 
 					+ Arrays.toString(firstPlayer.holeCards) + "\n" 
 					+ Arrays.toString(firstPlayer.bestHand(board, true)));
 			throw new RuntimeException("full house");
 		}
 		if (firstPlayer.strength(firstPlayer.bestHand(board, false))[0] != 1) {
-			System.out.println(firstPlayer.strength(board)[0]);
+			qPrint(firstPlayer.strength(board)[0]);
 			throw new RuntimeException("board strength");
 		}
 	}
+
+	void qPrint(int i) {
+		globalString.append(i + "\n");
+	}
+
 
 	void printCSV() {
 		String string = "";
@@ -287,19 +365,19 @@ public class PokerrMain {
 					p.holeCards[0] = deck.randomCard();
 					p.holeCards[1] = deck.randomCard();
 					if (PRINT)
-						System.out.println(p.name + "(" + players.indexOf(p) + ")" + " is dealt " + p.holeCards[0] + "|" + p.holeCards[1]);
+						qPrint(p.name + "(" + players.indexOf(p) + ")" + " is dealt " + p.holeCards[0] + "|" + p.holeCards[1]);
 				}
 				if (PRINT)
-					System.out.println("");
+					qPrint("");
 
 				nextCard = false;
 
 				if (PRINT)
-					System.out.println(players.get(SBpos).name + "(" + SBpos + ")" + " puts in SB (" + SB + ")");
+					qPrint(players.get(SBpos).name + "(" + SBpos + ")" + " puts in SB (" + SB + ")");
 				toPlay = SBpos;
 				playerAction(SB);
 				if (PRINT)
-					System.out.println(players.get(BBpos).name + "(" + BBpos + ")" + " puts in BB (" + BB + ")");
+					qPrint(players.get(BBpos).name + "(" + BBpos + ")" + " puts in BB (" + BB + ")");
 				toPlay = BBpos;
 				int totalBets = 0;
 				for (Pot p : pots) {
@@ -313,8 +391,6 @@ public class PokerrMain {
 				while (gameStage != 4) {
 					evaluateBetter();
 					while (!nextCard) {
-						if (PRINT)
-							System.out.println("It's " + players.get(toPlay).name + "(" + toPlay + ")" + "'s turn");
 						playerAction(-1);
 						better--;
 						toPlay = nextPlayer(toPlay);
@@ -349,7 +425,7 @@ public class PokerrMain {
 					}
 				}
 				//if (showdownPotCount > 4)
-					//throw new RuntimeException("piss");
+				//throw new RuntimeException("piss");
 				int sum = 0;
 				for (PokerrPlayer p : players) {
 					sum += p.bank;
@@ -358,6 +434,7 @@ public class PokerrMain {
 					activePlayers().get(0).bank++;
 					sum++;
 				}
+
 				printDebug(0);
 				int bankSum2 = 0;
 				for (PokerrPlayer p : players) {
@@ -367,6 +444,7 @@ public class PokerrMain {
 				}
 				if (bankSum != bankSum2)
 					throw new RuntimeException("inflation/deflation");
+
 				for (PokerrPlayer p : players) {
 					p.holeCards[0] = null;
 					p.holeCards[1] = null;
@@ -374,17 +452,23 @@ public class PokerrMain {
 				for (PokerrPlayer p : players) {
 					p.inTheHand = p.bank > 0 ? true : false;
 				}
+
 				if (activePlayers().size() == 1) {
 					activePlayers().get(0).totalWinnings += activePlayers().get(0).bank / 10000;
-					System.out.println("---------------------");
-					System.out.println("====" + iterations + "." + iterations2  + "====");
+					qPrint("---------------------");
+					qPrint("====" + iterations + "." + iterations2  + "====");
 					printDebug(2);
+					System.out.println(globalString);
+					globalString = new StringBuilder("");
 					break;
 				}
 				SBpos = nextPlayer(SBpos);
 				BBpos = nextPlayer(SBpos);
 				if (PRINT)
-					System.out.println("====" + iterations + "." + iterations2  + "====");
+					qPrint("====" + iterations + "." + iterations2  + "====");
+
+				System.out.println(globalString);
+				globalString = new StringBuilder("");
 			} // for
 		} // for
 
@@ -492,8 +576,9 @@ public class PokerrMain {
 
 		if (winners.size() == 1) {
 			if (PRINT)
-				System.out.println("$$$ " + winner.name + "(" + players.indexOf(winner) + ")" + " wins " + pot + " $$$");
+				qPrint("$$$ " + winner.name + "(" + players.indexOf(winner) + ")" + " wins " + pot + " $$$");
 			winner.bank += pot;
+			winner.winFdbk(true);
 		} else {
 			int counter = 0;
 			for(PokerrPlayer p : winners) {
@@ -501,15 +586,16 @@ public class PokerrMain {
 			}
 			for(PokerrPlayer p : winners) {
 				if (PRINT)
-					System.out.println("$$$ " + p.name + "(" + players.indexOf(p) + ")" +  " wins " + (pot / counter) + " $$$");
+					qPrint("$$$ " + p.name + "(" + players.indexOf(p) + ")" +  " wins " + (pot / counter) + " $$$");
 				p.bank += Math.round(pot / counter);
+				p.winFdbk(true);
 			}
-			
-			
+
+
 		}
 
 		if (PRINT)
-			System.out.println("");
+			qPrint("");
 	} // showdown
 
 	void playerAction(int forceEval) {
@@ -532,7 +618,7 @@ public class PokerrMain {
 		evaluation = forceEval == -1 ? current.evaluate(bet, board) : forceEval;
 
 		if (PRINT)
-			System.out.print(current.name + "(" + players.indexOf(current) + ")" + " evaluates: " + evaluation);
+			qPrintNN(current.name + "(" + players.indexOf(current) + ")" + " evaluates: " + evaluation);
 
 		//sanitize input
 		if (forceEval == -1 
@@ -551,26 +637,27 @@ public class PokerrMain {
 			evaluation = 0;
 
 		if (PRINT)
-			System.out.println(" (" + evaluation + ")");
+			qPrint(" (" + evaluation + ")");
 
 		if (forceEval == -2) {
 			if (PRINT)
-				System.out.println(current.name + "(" + players.indexOf(current) + ")" + " is the last remaining...");
+				qPrint(current.name + "(" + players.indexOf(current) + ")" + " is the last remaining...");
 			for (Pot i : pots) {
 				if (i.players.size() != 0 && i.players.size() == 1 && i.potAmt != 0) {
 					PokerrPlayer tempPlayer = i.players.get(0);
 					tempPlayer.bank += i.potAmt;
 					if (PRINT)
-						System.out.println(tempPlayer.name + "(" + players.indexOf(tempPlayer) + ")" + " takes their " + i.potAmt + " back");
+						qPrint(tempPlayer.name + "(" + players.indexOf(tempPlayer) + ")" + " takes their " + i.potAmt + " back");
 					i.potAmt = 0;
 					i.players.remove(tempPlayer);
+					tempPlayer.winFdbk(true);
 				}
 			}
 		} else {
 			//fold
 			if (evaluation < 0) {
 				if (PRINT)
-					System.out.println(current.name + "(" + players.indexOf(current) + ")" + " folds");
+					qPrint(current.name + "(" + players.indexOf(current) + ")" + " folds");
 				for (Pot i : pots) {
 					if (i.players.size() != 0 && i.players.get(0) == current && i.players.size() == 1) {
 						current.bank += i.potAmt;
@@ -657,13 +744,13 @@ public class PokerrMain {
 				//prints
 				if (PRINT) {
 					if (solo)
-						System.out.println(current.name + "(" + players.indexOf(current) + ")" + " is the last one remaining");
+						qPrint(current.name + "(" + players.indexOf(current) + ")" + " is the last one remaining");
 					if (evaluation > 0) {
-						System.out.println(current.name + "(" + players.indexOf(current) + ")" + " raises to " + (bet + evaluation));
+						qPrint(current.name + "(" + players.indexOf(current) + ")" + " raises to " + (bet + evaluation));
 					} else if (bet - frontMoney == 0) {
-						System.out.println(current.name + "(" + players.indexOf(current) + ")" + " checks");
+						qPrint(current.name + "(" + players.indexOf(current) + ")" + " checks");
 					} else {
-						System.out.println(current.name + "(" + players.indexOf(current) + ")" + " calls to a total of " 
+						qPrint(current.name + "(" + players.indexOf(current) + ")" + " calls to a total of " 
 								+ bet + " (an additional " + (bet  - frontMoney) + ")" );
 					}
 				}
@@ -683,15 +770,15 @@ public class PokerrMain {
 		}
 		if (PRINT)
 			printDebug(1);
-		if (PRINT)
-			System.out.println("");
+		//if (PRINT)
+		//qPrint("");
 	}
 
 	void nextCard() {
 		if (gameStage == 0) {
 
 			if (PRINT)
-				System.out.println("-----^" + gameIndex[gameStage] + "^-----");
+				qPrint("-----^" + gameIndex[gameStage] + "^-----");
 			for (int i = 0; i < 3; i++) {
 				board[i] = deck.randomCard();
 			} // for
@@ -699,19 +786,19 @@ public class PokerrMain {
 		} else if (gameStage < 3) {
 
 			if (PRINT)
-				System.out.println("-----^" + gameIndex[gameStage] + "^-----");
+				qPrint("-----^" + gameIndex[gameStage] + "^-----");
 			board[gameStage + 2] = deck.randomCard();
 			gameStage++;
 		} else if (gameStage == 3) {
 
 			if (PRINT)
-				System.out.println("-----^" + gameIndex[gameStage] + "^-----");
+				qPrint("-----^" + gameIndex[gameStage] + "^-----");
 			gameStage++;
 		} // if
 		toPlay = nextPlayer(SBpos - 1);
 
 		if (PRINT)
-			System.out.println("");
+			qPrint("");
 	}
 
 	int nextPlayer(int pos) {
@@ -727,70 +814,66 @@ public class PokerrMain {
 	}
 
 	void printDebug(int mode) {
-		//System.out.println("----\\/DEBUG\\/----");
+		//qPrint("----\\/DEBUG\\/----");
 
 		if (PRINT)
-			System.out.println("");
+			qPrint("");
 		if (mode == 0 && PRINT && !SPEED) {
-			String toPrint = "";
-			int sum = 0;
+			/*int sum = 0;
 			int counter = 0;
 			for (Pot i : pots) {
 				if (i.potAmt != 0) {
-					toPrint += "Pot " + counter + ": " + i.potAmt + "\n";
+					qPrint("Pot " + counter + ": " + i.potAmt);
 					String playersPlayingForIt = "( ";	
 					for (PokerrPlayer p : i.players) {
 						playersPlayingForIt += p.name + "(" + players.indexOf(p) + ")" + " ";
 					}
 					playersPlayingForIt += ")";
-					toPrint += playersPlayingForIt + "\n";
+					qPrint(playersPlayingForIt);
 					sum += i.potAmt;
 					counter++;
 				}
 			}
-			toPrint += "Pot total:  " + sum + "\n";
-			toPrint += "Board:  " + getBoard() + "\n\n";
-			System.out.print(toPrint);
+			qPrint("Pot total:  " + sum);*/
+			printDebug(1);
+			qPrint("Board:  " + getBoard() + "\n");
 			for (int i = 0; i < players.size(); i++) {
 				if (players.get(i).holeCards[0] == null) {
-					System.out.println(players.get(i).name + "(" + i + ")" + " was not dealt in this hand.");
+					qPrint(players.get(i).name + "(" + i + ")" + " was not dealt in this hand.");
 				} else {
 					PokerrPlayer p = players.get(i);
 					Card[] pBestHand = p.bestHand(board, true);
-					System.out.println(p.name + "(" + i + ")" + " cards:  " + p.holeCards[0] + "|" + p.holeCards[1]
+					qPrint(p.name + "(" + i + ")" + " cards:  " + p.holeCards[0] + "|" + p.holeCards[1]
 							+ " (besthand: " + Arrays.toString(pBestHand) + ")");
-					System.out.println(p.name + "(" + i + ")" + " strength:  " + p.strength(pBestHand)[0] 
+					qPrint(p.name + "(" + i + ")" + " strength:  " + p.strength(pBestHand)[0] 
 							+ "." + p.strength(pBestHand)[1] 
 									+ "." + p.strength(pBestHand)[2]
 											+ "." + p.strength(pBestHand)[3]);
-					System.out.println(p.name + "(" + i + ")" + " bank:  " + p.bank);
-					System.out.println(p.name + "(" + i + ")" + " in the hand: " + p.inTheHand);
+					qPrint(p.name + "(" + i + ")" + " bank:  " + p.bank);
+					qPrint(p.name + "(" + i + ")" + " in the hand: " + p.inTheHand);
 				}	
-				System.out.println("");
+				qPrint("");
 			} // for
 		} // if
 		if (mode == 1 && PRINT) {
-			String toPrint = "";
 			int sum = 0;
 			int counter = 0;
 			for (Pot i : pots) {
-				toPrint += "Pot " + counter + ": " + i.potAmt + "\n";
+				qPrint("Pot " + counter + ": " + i.potAmt);
+				qPrintNN(Arrays.toString(i.callersAmt));
 				String playersPlayingForIt = "( ";	
 				for (PokerrPlayer p : i.players) {
 					playersPlayingForIt += p.name + "(" + players.indexOf(p) + ")" + " ";
 				}
 				playersPlayingForIt += ")";
-				toPrint += playersPlayingForIt + "\n";
+				qPrint(playersPlayingForIt);
 				sum += i.potAmt;
 				counter++;
-				toPrint += Arrays.toString(i.callersAmt) + "\n";
-				toPrint += "Bet: " + i.bet + "\n";
+				qPrint("Bet: " + i.bet);
 			}
-			toPrint += "Pot total:  " + sum + "\n";	
-			System.out.print(toPrint);
+			qPrint("Pot total:  " + sum);
 		}
 		if (mode == 2) {
-			String toPrint = "";
 			PokerrPlayer[] x = new PokerrPlayer[players.size()];
 			for (PokerrPlayer p : players) {
 				x[players.indexOf(p)] = p;
@@ -800,32 +883,31 @@ public class PokerrMain {
 			Collections.reverse(y);
 			x = y.toArray(new PokerrPlayer[0]);
 			for (PokerrPlayer p : x) {
-				toPrint += p.name + "(" + players.indexOf(p) + ")" + " winnings: " + p.totalWinnings + "\n";
+				qPrint(p.name + "(" + players.indexOf(p) + ")" + " winnings: " + p.totalWinnings);
 			}
-			System.out.print(toPrint);
 		}
 		if (mode == 3 && PRINT && !SPEED) {
-			System.out.println("Board:  " + getBoard());
+			qPrint("Board:  " + getBoard());
 			int sum = 0;
 			int counter = 0;
 			for (Pot i : pots) {
 				if (i.potAmt != 0) {
-					System.out.println("Pot " + counter + ": " + i.potAmt);
+					qPrint("Pot " + counter + ": " + i.potAmt);
 					String playersPlayingForIt = "( ";	
 					for (PokerrPlayer p : i.players) {
 						playersPlayingForIt += p.name + "(" + players.indexOf(p) + ")" + " ";
 					}
 					playersPlayingForIt += ")";
-					System.out.println(playersPlayingForIt);
+					qPrint(playersPlayingForIt);
 					sum += i.potAmt;
 					counter++;
 				}
 			}
-			System.out.println("Pot total:  " + sum);
+			qPrint("Pot total:  " + sum);
 		}
-		//System.out.println("----^DEBUG^----");
+		//qPrint("----^DEBUG^----");
 		if (PRINT)
-			System.out.println("");
+			qPrint("");
 	} // printDebug
 
 	String getBoard() {

@@ -1,8 +1,4 @@
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
 
 public abstract class PokerrPlayer {
 
@@ -30,9 +26,20 @@ public abstract class PokerrPlayer {
 	// return >0 = bet/raise
 	abstract int evaluate(int betfacing, Card[] board);
 
-
+	void winFdbk(boolean win) {
+		
+	}
 
 	public int[] strength(Card[] ce) {
+		if (ce.length == 2 || ce[2] == null) {
+			int[] CEStrength = new int[] {0,0,0,0};
+			if (ce[0].value == ce[1].value)
+				CEStrength[0] = 1;
+			CEStrength[2] = ce[0].value >= ce[1].value ? ce[0].value : ce[1].value;
+			return CEStrength;
+		}
+		
+		
 		int[] CEStrength = new int[] {0,0,0,0};
 		CEStrength[2] = ce[0].value;
 		//pair
@@ -42,8 +49,8 @@ public abstract class PokerrPlayer {
 			//two pair
 			if (ce[3] != null && ce[2].value == ce[3].value) {
 				CEStrength[0] = 2;
-				CEStrength[2] = ce[0].value > ce[2].value ? ce[0].value : ce[2].value;
-				CEStrength[3] = ce[0].value < ce[2].value ? ce[0].value : ce[2].value;
+				CEStrength[2] = ce[0].value >= ce[2].value ? ce[0].value : ce[2].value;
+				CEStrength[3] = ce[0].value <= ce[2].value ? ce[0].value : ce[2].value;
 			}
 
 			//trips
@@ -149,6 +156,7 @@ public abstract class PokerrPlayer {
 					raw[i + (useHoleCards ? 2 : 0)] = board[i];
 			}
 			Permutations<Card> perm = new Permutations<Card>(raw);
+			//Card[] last = null;
 			while(perm.hasNext()) {
 				Card[] ce2 = perm.next();
 				ce = Arrays.copyOf(ce2, 5);
@@ -156,13 +164,13 @@ public abstract class PokerrPlayer {
 				boolean equSuit = true;
 				for (int i = 0; i < 5; i++) {
 					if (ce[i] != null && toReturn[i] != null) {
-						if (toReturn[i].suit != ce[i].suit) {
+						if (toReturn[i].suit != ce[i].suit) {	//|| (last != null && last[i].suit != ce[i].suit)) {
 							equSuit = false;
 							break;
 						}
 					}
 				}
-				if (equSuit && Arrays.equals(ce, toReturn))
+				if (equSuit && Arrays.equals(ce, toReturn))// && last != null && Arrays.equals(ce, last))
 					continue;
 				
 				CEStrength = strength(ce);
@@ -170,6 +178,7 @@ public abstract class PokerrPlayer {
 				if (CEStrength[0] < TRStrength[0])
 					continue;
 				
+				//last = ce;
 				if (CEStrength[0] > TRStrength[0]) {
 					TRStrength = CEStrength;
 					toReturn = ce;
