@@ -101,7 +101,7 @@ public class PokerrMain {
 		 * Goes all-in if it has anything better than a high card.
 		 * Folds otherwise (except pre-flop).
 		 */
-		addPlayer(false,"Alli_MK1", new PokerrPlayer() {
+		addPlayer(true	,"Alli_MK1", new PokerrPlayer() {
 			@Override
 			public int evaluate(int betfacing, Card[] board) {
 				if (getGameStage(board) == 0) {
@@ -121,7 +121,7 @@ public class PokerrMain {
 		 * Goes all-in if it has anything better than a pair.
 		 * Folds otherwise (except pre-flop).
 		 */
-		addPlayer(false,"Alli_MK2", new PokerrPlayer() {
+		addPlayer(true,"Alli_MK2", new PokerrPlayer() {
 			@Override
 			public int evaluate(int betfacing, Card[] board) {
 				if (getGameStage(board) == 0) {
@@ -141,7 +141,7 @@ public class PokerrMain {
 		 * Goes all-in if it has anything better than a high card that's not on the board.
 		 * Folds otherwise (except pre-flop).
 		 */
-		addPlayer(false,"Alli_MK3", new PokerrPlayer() {
+		addPlayer(true,"Alli_MK3", new PokerrPlayer() {
 			@Override
 			public int evaluate(int betfacing, Card[] board) {
 				if (getGameStage(board) == 0) {
@@ -191,16 +191,7 @@ public class PokerrMain {
 					return (int) (((keys.getLast()[1] * BB) - betfacing >= 0 
 					&& (keys.getLast()[1] * BB) - betfacing >= betfacing * 2
 					&& (keys.getLast()[1] * BB) - betfacing <= bank)
-							? (keys.getLast()[1] * BB) - betfacing : decision);
-				
-				
-				// betfacing, strength, decision, outcome
-				int[] bestKey = new int[]{500,0,0,1,0};
-				// arbitrarily high to ensure is replaced
-				int bestEval = 99999;
-
-				if (keys.size() == 0)
-					keys.add(bestKey);
+							? (keys.getLast()[1] * BB) - betfacing : decision);	
 
 				double toReturn = 0;			
 				int count = 0;
@@ -210,48 +201,64 @@ public class PokerrMain {
 				int val = strength[0];
 				int val2 = strength2[0];
 				int val3 = strength[2] - strength2[2];
+				
+				int totalWeight = 0;
+				
+				// betfacing, strength, decision, outcome
+				int[] bestKey = new int[] {betfacing,val-val2,(int)Math.round(decision),0,val3};
 
+				if (keys.size() == 0)
+					keys.add(bestKey);
+				
 				for (int[] key : keys) {
 					int eval = (int) (0.5*Math.pow(key[0] - betfacing,2) 
-							+ (10*BB*Math.pow(key[1] - (val-val2),2))
-							+ (10*BB*Math.pow(key[4] - (val3),2)));
-					if (eval < bestEval) {
-						bestEval = eval;
-						bestKey = key;
-						toReturn = bestKey[2];
-						count = 0;
-					} else if (bestKey[0] == key[0] 
+							+ (Math.pow(BB*(key[1] - (val-val2)),2))
+							+ (Math.pow(0.1*BB*(key[4] - (val3)),2)));
+					int temp = 0;
+					if (key[3] == 1) {
+						temp = key[2];
+					} else if (key[2] == -1) {
+						temp = 0;
+					} else if (key[2] == 0) {
+						temp = -1;
+					}
+					toReturn += temp * (1 / (eval+1));
+					totalWeight += (1 / (eval+1));
+					
+					if (bestKey[0] == key[0] 
 							&& bestKey[1] == key[1]
 							&& bestKey[4] == key[4]) {
-						if (key[3] == 1) {
-							toReturn = (toReturn + key[2]) / 2;
-						} else if (key[2] == 0) {
-							toReturn = (toReturn + -1) / 2;
-						} else {
-							toReturn = (toReturn + 0) / 2;
-						}
 						count++;
-
 					}
 				}
-				if (count < 500/(val-val2+1)) {
+				toReturn /= totalWeight;
+				
+				if (count < 10/(val-val2+1)) {
 					toReturn = 0;
 					qPrint("testing the waters...");
 				}
+				
 				qPrint(Double.toString(toReturn));
 				decision = (int) Math.round(toReturn);
-				keys.add(new int[] {betfacing,val-val2,(int)Math.round(decision),0,val3});
+				bestKey[2] = (int) Math.round(toReturn);
+				keys.add(bestKey);
 				qPrint(Arrays.toString(bestKey));
-				qPrint(Arrays.toString(keys.getLast()));
+				//qPrint(Arrays.toString(keys.getLast()));
 				return (int) (((keys.getLast()[1] * BB) - betfacing >= 0 
 						&& (keys.getLast()[1] * BB) - betfacing >= betfacing * 2
 						&& (keys.getLast()[1] * BB) - betfacing <= bank)
 								? (keys.getLast()[1] * BB) - betfacing : decision);
 			}
 			@Override
-			void winFdbk(boolean win) {
+			void winFdbk(boolean win, int[] str) {
 				if (win) {
 					keys.getLast()[3] = 1;
+				} else if (inTheHand) {
+					if (str[0] > strength(bestHand(board,true))[0]
+							|| (str[0] == strength(bestHand(board,true))[0] 
+									&& str[2] > strength(bestHand(board,true))[2])) {
+						keys.getLast()[3] = 1;						
+					}
 				}
 			}
 		});
@@ -594,7 +601,12 @@ public class PokerrMain {
 			if (PRINT)
 				qPrint("$$$ " + winner.name + "(" + players.indexOf(winner) + ")" + " wins " + pot + " $$$");
 			winner.bank += pot;
-			winner.winFdbk(true);
+			winner.winFdbk(true, null);
+			for (PokerrPlayer p : players) {
+				if (p != winner) {
+					p.winFdbk(false,winner.strength(winner.bestHand(board,true)));
+				}
+			}
 		} else {
 			int counter = 0;
 			for(PokerrPlayer p : winners) {
@@ -604,7 +616,12 @@ public class PokerrMain {
 				if (PRINT)
 					qPrint("$$$ " + p.name + "(" + players.indexOf(p) + ")" +  " wins " + (pot / counter) + " $$$");
 				p.bank += Math.round(pot / counter);
-				p.winFdbk(true);
+				p.winFdbk(true, null);
+			}
+			for (PokerrPlayer p : players) {
+				if (!winners.contains(p)) {
+					p.winFdbk(false,winner.strength(winner.bestHand(board,true)));
+				}
 			}
 
 
@@ -666,7 +683,6 @@ public class PokerrMain {
 						qPrint(tempPlayer.name + "(" + players.indexOf(tempPlayer) + ")" + " takes their " + i.potAmt + " back");
 					i.potAmt = 0;
 					i.players.remove(tempPlayer);
-					tempPlayer.winFdbk(true);
 				}
 			}
 		} else {
