@@ -12,7 +12,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public class PokerrMain {
 
 
-	final int ROUNDS = 1000;
+	final int ROUNDS = 10000;
 	boolean PRINT = true;
 	boolean SPEED = false;
 	final int BB = 500;
@@ -182,30 +182,44 @@ public class PokerrMain {
 		 */
 		addPlayer(true,"Add'y", new PokerrPlayer() {
 			LinkedList<int[]> keys = new LinkedList<int[]>();
+			double decision;
 			@Override
 			public int evaluate(int betfacing, Card[] board) {
+				if (getGameStage(board) == 0)
+					return 0;
+				if (getGameStage(board) > 1)
+					return (int) (betfacing == 0 ? BB : decision);
+				
+				
 				// betfacing, strength, decision, outcome
-				int[] bestKey = new int[]{0,0,0,1};
+				int[] bestKey = new int[]{500,0,0,1,0};
 				// arbitrarily high to ensure is replaced
 				int bestEval = 99999;
+
 				if (keys.size() == 0)
 					keys.add(bestKey);
 
-				double toReturn = 0;				
+				double toReturn = 0;			
 				int count = 0;
 
 				int[] strength = strength(bestHand(board,true));
+				int[] strength2 = strength(bestHand(board,false));
 				int val = strength[0];
-				//int val2 = strength[2];
+				int val2 = strength2[0];
+				int val3 = strength[2] - strength2[2];
 
 				for (int[] key : keys) {
-					int eval = (int) (Math.pow(key[0] - betfacing,2) + (5000*Math.pow(key[1] - val,2)));
+					int eval = (int) (0.5*Math.pow(key[0] - betfacing,2) 
+							+ (10*BB*Math.pow(key[1] - (val-val2),2))
+							+ (10*BB*Math.pow(key[4] - (val3),2)));
 					if (eval < bestEval) {
 						bestEval = eval;
 						bestKey = key;
 						toReturn = bestKey[2];
 						count = 0;
-					} else if (bestKey[0] == key[0] && bestKey[1] == key[1]) {
+					} else if (bestKey[0] == key[0] 
+							&& bestKey[1] == key[1]
+							&& bestKey[4] == key[4]) {
 						if (key[3] == 1) {
 							toReturn = (toReturn + key[2]) / 2;
 						} else if (key[2] == 0) {
@@ -217,26 +231,22 @@ public class PokerrMain {
 
 					}
 				}
-				if (count < 300/(val+1)) {
-					toReturn = Math.round(Math.random() - 0.75);
-					qPrint("rand bvv");
+				if (count < 500/(val-val2+1)) {
+					toReturn = 0;
+					qPrint("testing the waters...");
 				}
 				qPrint(Double.toString(toReturn));
-				int toReturnInt = (int) Math.round(toReturn);
-				if (toReturnInt > 0)
-					toReturnInt = 0;
-				keys.add(new int[] {betfacing,val,toReturnInt,0});
+				decision = (int) Math.round(toReturn);
+				keys.add(new int[] {betfacing,val-val2,(int)Math.round(decision),0,val3});
 				qPrint(Arrays.toString(bestKey));
 				qPrint(Arrays.toString(keys.getLast()));
-				return toReturnInt;
+				return (int) (betfacing == 0 ? BB : decision);
 			}
 			@Override
 			void winFdbk(boolean win) {
 				if (win) {
 					keys.getLast()[3] = 1;
-					keys.getLast()[2]++;
 				}
-				//keys.getLast()[3] = win ? 1 : 0;
 			}
 		});
 	}
