@@ -188,7 +188,10 @@ public class PokerrMain {
 				if (getGameStage(board) == 0)
 					return 0;
 				if (getGameStage(board) > 1)
-					return (int) (betfacing == 0 ? BB : decision);
+					return (int) (((keys.getLast()[1] * BB) - betfacing >= 0 
+					&& (keys.getLast()[1] * BB) - betfacing >= betfacing * 2
+					&& (keys.getLast()[1] * BB) - betfacing <= bank)
+							? (keys.getLast()[1] * BB) - betfacing : decision);
 				
 				
 				// betfacing, strength, decision, outcome
@@ -240,7 +243,10 @@ public class PokerrMain {
 				keys.add(new int[] {betfacing,val-val2,(int)Math.round(decision),0,val3});
 				qPrint(Arrays.toString(bestKey));
 				qPrint(Arrays.toString(keys.getLast()));
-				return (int) (betfacing == 0 ? BB : decision);
+				return (int) (((keys.getLast()[1] * BB) - betfacing >= 0 
+						&& (keys.getLast()[1] * BB) - betfacing >= betfacing * 2
+						&& (keys.getLast()[1] * BB) - betfacing <= bank)
+								? (keys.getLast()[1] * BB) - betfacing : decision);
 			}
 			@Override
 			void winFdbk(boolean win) {
