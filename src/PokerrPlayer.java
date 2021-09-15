@@ -1,4 +1,5 @@
 import java.util.Arrays;
+import java.util.LinkedList;
 
 public abstract class PokerrPlayer {
 
@@ -24,7 +25,7 @@ public abstract class PokerrPlayer {
 	// return -1 = fold
 	// return 0 = call
 	// return >0 = bet/raise
-	abstract int evaluate(int betfacing, Card[] board);
+	abstract int evaluate(int betfacing, Card[] board, LinkedList<PokerrPlayer> players);
 
 	void winFdbk(boolean win, int[] str) {
 		

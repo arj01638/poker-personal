@@ -58,7 +58,7 @@ public class PokerrMain {
 		 */
 		addPlayer(true, "Dornk", new PokerrPlayer() {
 			@Override
-			int evaluate(int betfacing, Card[] board) {
+			int evaluate(int betfacing, Card[] board, LinkedList<PokerrPlayer> players) {
 				int decision = (BB/5)*ThreadLocalRandom.current().nextInt(-1, 10);
 				if (betfacing >= bank)
 					return ThreadLocalRandom.current().nextInt(-1,1);
@@ -81,7 +81,7 @@ public class PokerrMain {
 		 */
 		addPlayer(true,"OptyMB", new PokerrPlayer() {
 			@Override
-			public int evaluate(int betfacing, Card[] board) {
+			public int evaluate(int betfacing, Card[] board, LinkedList<PokerrPlayer> players) {
 				if (betfacing > bank)
 					return 0;
 				int evaluation;
@@ -101,9 +101,9 @@ public class PokerrMain {
 		 * Goes all-in if it has anything better than a high card.
 		 * Folds otherwise (except pre-flop).
 		 */
-		addPlayer(true	,"Alli_MK1", new PokerrPlayer() {
+		addPlayer(true,"Alli_MK1", new PokerrPlayer() {
 			@Override
-			public int evaluate(int betfacing, Card[] board) {
+			public int evaluate(int betfacing, Card[] board, LinkedList<PokerrPlayer> players) {
 				if (getGameStage(board) == 0) {
 					return 0;
 				} else {
@@ -123,7 +123,7 @@ public class PokerrMain {
 		 */
 		addPlayer(true,"Alli_MK2", new PokerrPlayer() {
 			@Override
-			public int evaluate(int betfacing, Card[] board) {
+			public int evaluate(int betfacing, Card[] board, LinkedList<PokerrPlayer> players) {
 				if (getGameStage(board) == 0) {
 					return 0;
 				} else {
@@ -143,7 +143,7 @@ public class PokerrMain {
 		 */
 		addPlayer(true,"Alli_MK3", new PokerrPlayer() {
 			@Override
-			public int evaluate(int betfacing, Card[] board) {
+			public int evaluate(int betfacing, Card[] board, LinkedList<PokerrPlayer> players) {
 				if (getGameStage(board) == 0) {
 					return 0;
 				} else {
@@ -181,84 +181,54 @@ public class PokerrMain {
 		 * 
 		 */
 		addPlayer(true,"Add'y", new PokerrPlayer() {
+			//strengthBoard,strengthPlayer,playerLength,sdecision (-1 fold 1 call), outcome(-1 loss 1 win)
 			LinkedList<int[]> keys = new LinkedList<int[]>();
-			double decision;
+			int decision;
 			@Override
-			public int evaluate(int betfacing, Card[] board) {
-				if (getGameStage(board) == 0)
+			public int evaluate(int betfacing, Card[] board, LinkedList<PokerrPlayer> players) {
+				if (keys.size() > 10000) {
+					keys.remove(0);
+				}
+				if (getGameStage(board) == 0 || betfacing == 0)
 					return 0;
 				if (getGameStage(board) > 1)
-					return (int) (((keys.getLast()[1] * BB) - betfacing >= 0 
-					&& (keys.getLast()[1] * BB) - betfacing >= betfacing * 2
-					&& (keys.getLast()[1] * BB) - betfacing <= bank)
-							? (keys.getLast()[1] * BB) - betfacing : decision);	
+					return decision;
+				int strengthBoard = strength(bestHand(board,false))[0];
+				int strengthPlayer = strength(bestHand(board,true))[0];
 
-				double toReturn = 0;			
+				int[] currentKey = new int[] {strengthBoard, strengthPlayer, players.size(), 1, -1};
+				double weightedDecision = 0;
+				double totalWeights = 0;
 				int count = 0;
-
-				int[] strength = strength(bestHand(board,true));
-				int[] strength2 = strength(bestHand(board,false));
-				int val = strength[0];
-				int val2 = strength2[0];
-				int val3 = strength[2] - strength2[2];
-				
-				int totalWeight = 0;
-				
-				// betfacing, strength, decision, outcome
-				int[] bestKey = new int[] {betfacing,val-val2,(int)Math.round(decision),0,val3};
-
-				if (keys.size() == 0)
-					keys.add(bestKey);
-				
 				for (int[] key : keys) {
-					int eval = (int) (0.5*Math.pow(key[0] - betfacing,2) 
-							+ (Math.pow(BB*(key[1] - (val-val2)),2))
-							+ (Math.pow(0.1*BB*(key[4] - (val3)),2)));
-					int temp = 0;
-					if (key[3] == 1) {
-						temp = key[2];
-					} else if (key[2] == -1) {
-						temp = 0;
-					} else if (key[2] == 0) {
-						temp = -1;
-					}
-					toReturn += temp * (1 / (eval+1));
-					totalWeight += (1 / (eval+1));
-					
-					if (bestKey[0] == key[0] 
-							&& bestKey[1] == key[1]
-							&& bestKey[4] == key[4]) {
+					double weight = (int) Math.pow((players.size() - key[2]),6) + Math.pow((strengthBoard - key[0]),6) + Math.pow((strengthPlayer - key[1]),6) + 1;
+					weight *= key[4];
+					weight = 1 / weight;
+					if (Math.abs(weight) == 1)
 						count++;
-					}
+					weightedDecision += key[3] * weight;
+					totalWeights += Math.abs(weight);
+					//qPrint(Arrays.toString(key) + ", " + weight);
 				}
-				toReturn /= totalWeight;
-				
-				if (count < 10/(val-val2+1)) {
-					toReturn = 0;
-					qPrint("testing the waters...");
+				weightedDecision /= totalWeights;
+				qPrint(Double.toString(weightedDecision));
+				decision = weightedDecision >= 0 ? 0 : -1;
+
+				if (count < (50/(strengthPlayer+strengthBoard+1))) {
+					decision = (int) Math.round(Math.random()-1);
+					qPrint("rand");
 				}
-				
-				qPrint(Double.toString(toReturn));
-				decision = (int) Math.round(toReturn);
-				bestKey[2] = (int) Math.round(toReturn);
-				keys.add(bestKey);
-				qPrint(Arrays.toString(bestKey));
-				//qPrint(Arrays.toString(keys.getLast()));
-				return (int) (((keys.getLast()[1] * BB) - betfacing >= 0 
-						&& (keys.getLast()[1] * BB) - betfacing >= betfacing * 2
-						&& (keys.getLast()[1] * BB) - betfacing <= bank)
-								? (keys.getLast()[1] * BB) - betfacing : decision);
+
+				currentKey[3] = decision == 0 ? 1 : -1;
+				keys.add(currentKey);
+				qPrint(Arrays.toString(currentKey));
+				return decision;
 			}
 			@Override
 			void winFdbk(boolean win, int[] str) {
-				if (win) {
-					keys.getLast()[3] = 1;
-				} else if (inTheHand) {
-					if (str[0] > strength(bestHand(board,true))[0]
-							|| (str[0] == strength(bestHand(board,true))[0] 
-									&& str[2] > strength(bestHand(board,true))[2])) {
-						keys.getLast()[3] = 1;						
-					}
+				if (holeCards[0] != null
+						&& (win || (str[0] > strength(bestHand(board,true))[0]))) {
+					keys.getLast()[4] = 1;
 				}
 			}
 		});
@@ -354,7 +324,6 @@ public class PokerrMain {
 			out = new PrintWriter(bw);
 			out.println(header);
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
@@ -440,15 +409,11 @@ public class PokerrMain {
 						printCSV();
 					iterations3++;
 				}
-				int showdownPotCount = 0;
 				for (Pot i : pots) {
 					if (i.potAmt > 0) {
 						showdown(i.potAmt, i.players);
-						showdownPotCount++;
 					}
 				}
-				//if (showdownPotCount > 4)
-				//throw new RuntimeException("piss");
 				int sum = 0;
 				for (PokerrPlayer p : players) {
 					sum += p.bank;
@@ -506,6 +471,18 @@ public class PokerrMain {
 				activePlayers.add(p);
 		}
 		return activePlayers;
+	} // activePlayers
+	
+	LinkedList<PokerrPlayer> committedPlayers() {
+		LinkedList<PokerrPlayer> committedPlayers = new LinkedList<PokerrPlayer>();
+		for(PokerrPlayer p : players) {
+			for (Pot po : pots)
+				if (po.players.contains(p) && !committedPlayers.contains(p)) {
+					committedPlayers.add(p);
+					break;
+				}
+		}
+		return committedPlayers;
 	} // activePlayers
 
 	void evaluateBetter() {
@@ -648,7 +625,7 @@ public class PokerrMain {
 		}
 
 		int evaluation = 0;
-		evaluation = forceEval == -1 ? current.evaluate(bet, board) : forceEval;
+		evaluation = forceEval == -1 ? current.evaluate(bet, board, committedPlayers()) : forceEval;
 
 		if (PRINT)
 			qPrintNN(current.name + "(" + players.indexOf(current) + ")" + " evaluates: " + evaluation);

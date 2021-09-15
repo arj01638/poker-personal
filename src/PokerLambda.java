@@ -1,3 +1,4 @@
+import java.util.LinkedList;
 import java.util.function.Supplier;
 
 public class PokerLambda<T> extends PokerrPlayer
@@ -9,7 +10,7 @@ public class PokerLambda<T> extends PokerrPlayer
     }
 
     @Override
-    public int evaluate(int betfacing, Card[] board)
+    public int evaluate(int betfacing, Card[] board, LinkedList<PokerrPlayer> players)
     {
         return this.supplier.get();
     }
