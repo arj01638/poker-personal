@@ -1,5 +1,4 @@
 import java.util.Arrays;
-import java.util.LinkedList;
 
 public abstract class PokerrPlayer {
 
@@ -13,8 +12,10 @@ public abstract class PokerrPlayer {
 	public double totalWinnings = 0;
 	public String name = "";
 	public int frontMoney = 0;
+	public PokerrMain parent;
 
-	PokerrPlayer() {
+	PokerrPlayer(PokerrMain parent) {
+		this.parent = parent;
 		bank = STARTING_BANK;
 	}
 
@@ -25,10 +26,10 @@ public abstract class PokerrPlayer {
 	// return -1 = fold
 	// return 0 = call
 	// return >0 = bet/raise
-	abstract int evaluate(int betfacing, Card[] board, LinkedList<PokerrPlayer> players);
+	abstract int evaluate();
 
 	void winFdbk(boolean win, int[] str) {
-		
+		// do nothing by default
 	}
 
 	public int[] strength(Card[] ce) {
@@ -39,8 +40,8 @@ public abstract class PokerrPlayer {
 			CEStrength[2] = ce[0].value >= ce[1].value ? ce[0].value : ce[1].value;
 			return CEStrength;
 		}
-		
-		
+
+
 		int[] CEStrength = new int[] {0,0,0,0};
 		CEStrength[2] = ce[0].value;
 		//pair
@@ -130,9 +131,6 @@ public abstract class PokerrPlayer {
 		return CEStrength;
 	} // strength
 
-
-
-
 	public Card[] bestHand(Card[] board, boolean useHoleCards) {
 		Card[] toReturn = new Card[5];
 		Card[] ce = new Card[5];
@@ -173,12 +171,12 @@ public abstract class PokerrPlayer {
 				}
 				if (equSuit && Arrays.equals(ce, toReturn))// && last != null && Arrays.equals(ce, last))
 					continue;
-				
+
 				CEStrength = strength(ce);
-				
+
 				if (CEStrength[0] < TRStrength[0])
 					continue;
-				
+
 				//last = ce;
 				if (CEStrength[0] > TRStrength[0]) {
 					TRStrength = CEStrength;
@@ -219,6 +217,21 @@ public abstract class PokerrPlayer {
 		return 3;
 
 	}
+
+	public int getBet() {
+		int bet =0;
+		for (Pot i : parent.pots) {
+			bet += i.bet;
+		}
+		return bet;
+	}
 	
+	public int getPot() {
+		int pot =0;
+		for (Pot i : parent.pots) {
+			pot += i.potAmt;
+		}
+		return pot;
+	}
 
 }
