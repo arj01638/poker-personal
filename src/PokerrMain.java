@@ -56,7 +56,7 @@ public class PokerrMain {
 		 * Folds ~1/11 of the time.
 		 * Else, makes random move.
 		 */
-		addPlayer(true, "Dornk", new PokerrPlayer(this) {
+		addPlayer(false, "Dornk", new PokerrPlayer(this) {
 			@Override
 			int evaluate() {
 				int decision = (BB/5)*ThreadLocalRandom.current().nextInt(-1, 10);
@@ -80,7 +80,7 @@ public class PokerrMain {
 		 * Always minbets if no bet is facing it.
 		 * Never folds.	
 		 */
-		addPlayer(true,"OptyMB", new PokerrPlayer(this) {
+		addPlayer(false,"OptyMB", new PokerrPlayer(this) {
 			@Override
 			public int evaluate() {
 				int betfacing = getBet();
@@ -163,31 +163,60 @@ public class PokerrMain {
 		});
 
 		/*
-		 * 
+		 * ???
 		 */
 		addPlayer(true,"Add'y", new PokerrPlayer(this) {
-			// playerAmt, hand strength, board strength, decision, outcome
+			// playerAmt, hand strength, board strength, gameStage, decision, outcome
 			// 7
 			LinkedList<int[]> keys = new LinkedList<int[]>();
 			int decision = 0;
+			int decisionIndex = 4;
+			int outcomeIndex = 5;
+			int[] currentKey;
+			int activeKeys = 0;
+			int gameStage = 0;
+
+			boolean debug = false;
+
+			LinkedList<int[]> getKeys() {
+				LinkedList<int[]> toReturn = new LinkedList<int[]>();
+				for (int i = 0; i < activeKeys; i++) {
+					toReturn.add(keys.get( keys.indexOf(keys.getLast()) - i));
+				}
+				return toReturn;
+			}
+			
 			@Override
 			public int evaluate() {
-				if (getGameStage(board) == 0)
-					return 0;
-					
-				if (getGameStage(board) > 1)
-					return decision;
+				gameStage = getGameStage(board);
 				
+				//todo, keep track of number of keys with an index and then update that group in winfeedback so can evaluate each turn
+
+				if (gameStage == 0) {
+					if (keys.size() != 0 && keys.getLast()[outcomeIndex] == 0) {
+						for (int[] i : getKeys()) {
+							if (debug)
+								qPrint("Removed undecided key " + Arrays.toString(i));
+							keys.remove(i);
+						}
+					}
+					activeKeys = 0;
+				}
+
+				if (committedPlayers().size() == 0 || (committedPlayers().size() == 1 && committedPlayers().get(0) == this)) {
+					qPrint(name + ": " + "Size is 0 or size is 1 and I'm last, checking.");
+					return 0;
+				}
+
 				int[] strengthHand = strength(bestHand(board,true));
 				int[] strengthBoard = strength(bestHand(board,false));
-				int[] currentKey = new int[] {
-						//getBet(), 
-						//getPot(), 
+				currentKey = new int[] {
 						committedPlayers().size(),
 						(strengthHand[0] * 100) + strengthHand[2],
 						(strengthBoard[0] * 100) + strengthBoard[2],
+						gameStage,
 						1,
-						-1
+						0
 				};
 
 				double evaluation = 0;
@@ -195,31 +224,86 @@ public class PokerrMain {
 				double weight = 0;
 				double totalWeight = 0;
 				for (int[] i : keys) {
+					if (i[3] != currentKey[3]) continue;
+					
+					weight = Math.pow((i[0] - currentKey[0])*50,4)
+							+ Math.pow(i[1] - currentKey[1], 4)
+							+ Math.pow(i[2] - currentKey[2], 4);
+					weight *= .000002;
+					if (weight < 1)
+						weight = 1;
+
 					if (Arrays.equals(Arrays.copyOf(i, i.length - 2), Arrays.copyOf(currentKey, currentKey.length - 2))) {
-						evaluation += (i[3] * i[4]);
+						//evaluation += (i[decisionIndex] * i[outcomeIndex]);
+						weight -= 0.25;
 						count++;
-					} // if			
-					
-					//TODO:refine with weight
-					
+					} // if
+
+					weight = 1 / weight;
+					totalWeight += weight;
+					evaluation += (i[decisionIndex] * i[outcomeIndex]) * weight;
+					if (debug)
+						qPrint(Arrays.toString(i) + " | " + Double.toString(weight) + " | " + Double.toString(evaluation / totalWeight));
+
 				} // for
-				evaluation /= count;
+				evaluation /= totalWeight;
+				if (count == 0) {
+					qPrint(name + ": Hmm, haven't seen this before.");
+					evaluation = 1;
+				}
+
+				decision = evaluation >= 0 ? 0 : -1;
+				currentKey[decisionIndex] = evaluation >= 0 ? 1 : -1;
+
+				qPrint(Double.toString(evaluation) + " | " + Arrays.toString(currentKey) + " | " + keys.size());
+				String[] moveIndex = new String[] {"FOLD","PLAY"};
+				qPrint(name + ": There are " +
+				currentKey[0] + "players playing for the pot.\nI have a " +
+				handIndex[strengthHand[0]] + " and the board has a " + 
+				handIndex[strengthBoard[0]] + ".\nWe're on the " +
+				gameIndex[gameStage] + ", so I will " +
+				moveIndex[decision+1]);
 				
-				decision = evaluation > 0 ? 0 : -1;
-				currentKey[3] = evaluation > 0 ? 1 : -1;
-				
-				qPrint(Double.toString(evaluation));
-				qPrint(Arrays.toString(currentKey));
 				keys.add(currentKey);
-				
+				activeKeys++;
+
+				if (decision != -1) scaleDecision();
+
 				return decision;
 			}
+
+			void scaleDecision() {
+				int BBscaler = (int) (currentKey[1]/100);
+				int scaleCap = bank / BB;
+				BBscaler *= scaleCap / 9;
+				BBscaler /= 2;
+				decision = BBscaler * BB;
+
+				if (decision + getBet() < getBet() * 2)
+					decision = 0;
+				if (decision + getBet() < BB)
+					decision = BB - getBet();
+				if (decision + getBet() > bank) {
+					decision = bank - (decision + getBet());
+					if (decision < 0) decision = 0;
+				}
+			}
+
 			@Override
 			void winFdbk(boolean win, int[] str) {
-				if (win) {
-					keys.getLast()[4] = 1;
-				} else if ((str[0] * 100) + str[2] > keys.getLast()[1]) {
-					keys.getLast()[4] = 1;
+				if (keys.getLast()[outcomeIndex] == 0) {
+					if (win) { //good call
+						for (int[] i : getKeys())
+							i[outcomeIndex] = 1;
+					} else if (keys.getLast()[decisionIndex] == -1 
+							&& (str[0] * 100) + str[2] > keys.getLast()[1]) { //good fold
+						for (int[] i : getKeys())
+							i[outcomeIndex] = 1;
+						//possible confusion if earlier moves are considered victories if it made a good fold too late
+					} else {
+						for (int[] i : getKeys())
+							i[outcomeIndex] = -1;
+					}
 				}
 			}
 		});
@@ -266,7 +350,6 @@ public class PokerrMain {
 	void qPrint(int i) {
 		globalString.append(i + "\n");
 	}
-
 
 	void printCSV() {
 		String string = "";
@@ -400,11 +483,20 @@ public class PokerrMain {
 						printCSV();
 					iterations3++;
 				}
-				for (Pot i : pots) {
+				
+				for (int j = pots.size() - 1; j >= 0; j--) {
+					Pot i = pots.get(j);
 					if (i.potAmt > 0) {
 						showdown(i.potAmt, i.players);
 					}
 				}
+				/*for (Pot i : pots) {
+					if (i.potAmt > 0) {
+						showdown(i.potAmt, i.players);
+					}
+				}*/
+				
+				
 				int sum = 0;
 				for (PokerrPlayer p : players) {
 					sum += p.bank;
@@ -576,10 +668,7 @@ public class PokerrMain {
 				}
 			}
 		} else {
-			int counter = 0;
-			for(PokerrPlayer p : winners) {
-				counter++;
-			}
+			int counter = winners.size();
 			for(PokerrPlayer p : winners) {
 				if (PRINT)
 					qPrint("$$$ " + p.name + "(" + players.indexOf(p) + ")" +  " wins " + (pot / counter) + " $$$");
@@ -819,22 +908,6 @@ public class PokerrMain {
 		if (PRINT)
 			qPrint("");
 		if (mode == 0 && PRINT && !SPEED) {
-			/*int sum = 0;
-			int counter = 0;
-			for (Pot i : pots) {
-				if (i.potAmt != 0) {
-					qPrint("Pot " + counter + ": " + i.potAmt);
-					String playersPlayingForIt = "( ";	
-					for (PokerrPlayer p : i.players) {
-						playersPlayingForIt += p.name + "(" + players.indexOf(p) + ")" + " ";
-					}
-					playersPlayingForIt += ")";
-					qPrint(playersPlayingForIt);
-					sum += i.potAmt;
-					counter++;
-				}
-			}
-			qPrint("Pot total:  " + sum);*/
 			printDebug(1);
 			qPrint("Board:  " + getBoard() + "\n");
 			for (int i = 0; i < players.size(); i++) {
