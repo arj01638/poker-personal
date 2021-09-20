@@ -184,8 +184,10 @@ public class PokerrMain {
 
 			LinkedList<int[]> getKeys() {
 				LinkedList<int[]> toReturn = new LinkedList<int[]>();
-				for (int i = 0; i < activeKeys; i++) {	
-					toReturn.add(keys.get( keys.indexOf(keys.getLast()) - i));
+				if (keys.size() != 0) {
+					for (int i = 0; i < activeKeys; i++) {	
+						toReturn.add(keys.get( keys.indexOf(keys.getLast()) - i));
+					}
 				}
 				return toReturn;
 			}
@@ -194,29 +196,37 @@ public class PokerrMain {
 			public int evaluate() {
 				gameStage = getGameStage(board);
 
-				qPrint(gameStage + "|" + startIteration + "|" + iterations2);
+				qPrint(name + ": stage:" + gameStage + "|" + "startIteration:" + startIteration + "|" + "currentIteration:" + iterations2);
+				for (int[] i : getKeys()) {
+					qPrint(name + ": getKeys:" + Arrays.toString(i));
+				}
 				if (gameStage == 0 && startIteration != iterations2) {
 					qPrint(name + ": Flushing systems...");
-					
-					if (iterations > 1 && iterations % 100 == 0 && iterations2 < 2	) {
+
+					if (iterations > 1 && iterations % 1000 == 0 && iterations2 < 2	) {
 						if (totalWinnings < iterations) {
 							qPrint(name + ": This isn't working...");
 							keys = new LinkedList<int[]>();
 						}
 					}
-					
+
 					if (keys.size() != 0 && keys.getLast()[outcomeIndex] == 0) {
+						qPrint(name + ": Removing undecided keys...");
 						for (int[] i : getKeys()) {
-							if (debug)
-								qPrint(name + ": Removed undecided key " + Arrays.toString(i));
+							qPrint(name + ": Removed undecided key " + Arrays.toString(i));
 							keys.remove(i);
 						}
 					} else {
-						for (int[] i : getKeys())
+						/*for (int[] i : getKeys())
 							i[returnIndex] = Math.abs(bank - startBank);
+						for (int[] i : getKeys()) {
+							qPrint(name + ": getKeys with returns:" + Arrays.toString(i));
+						}*/
 					}
 					
 					
+
+
 					startBank = bank;
 					activeKeys = 0;
 					startIteration = iterations2;
@@ -331,18 +341,24 @@ public class PokerrMain {
 								gameIndex[i[3]] + " with a " +
 								handIndex[i[1] / 100] + " (" + i[1] % 100 +  ")");
 						if (lastDecision != i[decisionIndex]) x *= -1;
-						i[decisionIndex] *= 1; // change key to reflect iuefuinruifasrf
+						//i[decisionIndex] *= 1; // change key to reflect iuefuinruifasrf
 						if (lastDecision != i[decisionIndex]) i[returnIndex] = 0;
+						qPrint(name + ": New key: " + Arrays.toString(i));
 					}
 					if (y > 0) y--;
 				}
 			} // updateKeyOutcomes
 
 			//TODO: good folds but net negative act like they won that cash...
-			
+
 			@Override
 			void winFdbk(boolean win, int[] str) {
 				startIteration = 0;
+				for (int[] i : getKeys())
+					i[returnIndex] = Math.abs(bank - startBank);
+				for (int[] i : getKeys()) {
+					qPrint(name + ": getKeys with returns:" + Arrays.toString(i));
+				}
 				if (keys.getLast()[outcomeIndex] == 0) {
 					if (win) { //good call
 						updateKeyOutcomes(1,0);
@@ -353,6 +369,7 @@ public class PokerrMain {
 						updateKeyOutcomes(-1,0);
 					}
 				}
+				
 			}
 		});
 	}
@@ -530,7 +547,7 @@ public class PokerrMain {
 					if (CSV)
 						printCSV();
 					iterations3++;
-					printGlobalString();
+					//printGlobalString();
 				}
 
 				for (int j = pots.size() - 1; j >= 0; j--) {
