@@ -233,7 +233,7 @@ public class PokerrMain {
 								0
 				};
 
-				if (keys.size() != 0 && currentKey[3] == keys.getLast()[3]) {
+				if (keys.size() != 0 && currentKey[3] == keys.getLast()[3] && currentKey[outcomeIndex] == keys.getLast()[outcomeIndex]) {
 					qPrint(name + ": re-evaluating " + Arrays.toString(keys.getLast()));
 					keys.remove(keys.getLast());
 					activeKeys--;
@@ -299,11 +299,10 @@ public class PokerrMain {
 				BBscaler *= scaleCap / 9;
 				BBscaler /= 2;
 				decision = BBscaler * BB;
-
-				if (decision + getBet() < getBet() * 2)
-					decision = 0;
 				if (decision + getBet() < BB)
 					decision = BB - getBet();
+				if (decision + getBet() < getBet() * 2)
+					decision = 0;
 				if (decision + getBet() > bank) {
 					decision = bank - (decision + getBet());
 					if (decision < 0) decision = 0;
