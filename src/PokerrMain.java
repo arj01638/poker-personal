@@ -330,12 +330,15 @@ public class PokerrMain {
 								moveIndex[(i[decisionIndex] > 0 ? 1 : 0)] + "ED on the " +
 								gameIndex[i[3]] + " with a " +
 								handIndex[i[1] / 100] + " (" + i[1] % 100 +  ")");
+						if (lastDecision != i[decisionIndex]) x *= -1;
+						i[decisionIndex] *= 1; // change key to reflect iuefuinruifasrf
+						if (lastDecision != i[decisionIndex]) i[returnIndex] = 0;
 					}
 					if (y > 0) y--;
 				}
 			} // updateKeyOutcomes
 
-			//todo, good folds but net negative act like they won that cash...
+			//TODO: good folds but net negative act like they won that cash...
 			
 			@Override
 			void winFdbk(boolean win, int[] str) {
@@ -346,7 +349,6 @@ public class PokerrMain {
 					} else if (keys.getLast()[decisionIndex] == -1 
 							&& (str[0] * 100) + str[2] > keys.getLast()[1]) { //good fold
 						updateKeyOutcomes(1,0);
-						//possible confusion if earlier moves are considered victories if it made a good fold too late
 					} else {
 						updateKeyOutcomes(-1,0);
 					}
