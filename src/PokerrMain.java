@@ -196,17 +196,27 @@ public class PokerrMain {
 
 				qPrint(gameStage + "|" + startIteration + "|" + iterations2);
 				if (gameStage == 0 && startIteration != iterations2) {
-					qPrint(name + ": flushing systems...");
+					qPrint(name + ": Flushing systems...");
+					
+					if (iterations > 1 && iterations % 100 == 0 && iterations2 < 2	) {
+						if (totalWinnings < iterations) {
+							qPrint(name + ": This isn't working...");
+							keys = new LinkedList<int[]>();
+						}
+					}
+					
 					if (keys.size() != 0 && keys.getLast()[outcomeIndex] == 0) {
 						for (int[] i : getKeys()) {
 							if (debug)
-								qPrint("Removed undecided key " + Arrays.toString(i));
+								qPrint(name + ": Removed undecided key " + Arrays.toString(i));
 							keys.remove(i);
 						}
 					} else {
 						for (int[] i : getKeys())
 							i[returnIndex] = Math.abs(bank - startBank);
 					}
+					
+					
 					startBank = bank;
 					activeKeys = 0;
 					startIteration = iterations2;
@@ -245,7 +255,7 @@ public class PokerrMain {
 				for (int[] i : keys) {
 					if (i[3] != currentKey[3] || Math.abs(i[0] - currentKey[0]) > 1) continue;
 
-					weight = Math.pow((i[0] - currentKey[0])*50,4)
+					weight = Math.pow((i[0] - currentKey[0]) * 35,4)
 							+ Math.pow(i[1] - currentKey[1], 4)
 							+ Math.pow(i[2] - currentKey[2], 4);
 					weight *= .000002;
@@ -257,7 +267,7 @@ public class PokerrMain {
 						count++;
 					} // if
 
-					weight *= 1.0 - ((double)i[returnIndex] / ((double)players.size() * (double)STARTING_BANK));
+					weight *= Math.pow(1.0 - ((double)i[returnIndex] / ((double)players.size() * (double)STARTING_BANK)),2);
 
 					weight = 1 / weight;
 
@@ -310,8 +320,11 @@ public class PokerrMain {
 			}
 
 			void updateKeyOutcomes(int x, int y) {
+				int lastDecision = 0;
 				for (int[] i : getKeys()) {
 					if (y == 0) {
+						if (lastDecision == 0) lastDecision = i[decisionIndex];
+						if (lastDecision != i[decisionIndex]) x *= -1;
 						i[outcomeIndex] = x;
 						qPrint(name + ": That was a " + (x > 0 ? "GOOD" : "BAD") + " move when I " +
 								moveIndex[(i[decisionIndex] > 0 ? 1 : 0)] + "ED on the " +
@@ -322,6 +335,8 @@ public class PokerrMain {
 				}
 			} // updateKeyOutcomes
 
+			//todo, good folds but net negative act like they won that cash...
+			
 			@Override
 			void winFdbk(boolean win, int[] str) {
 				startIteration = 0;
@@ -330,13 +345,7 @@ public class PokerrMain {
 						updateKeyOutcomes(1,0);
 					} else if (keys.getLast()[decisionIndex] == -1 
 							&& (str[0] * 100) + str[2] > keys.getLast()[1]) { //good fold
-						keys.getLast()[outcomeIndex] = 1;
-						int[] i = keys.getLast();
-						qPrint(name + ": That was a " + "GOOD" + " move when I " +
-								moveIndex[(i[decisionIndex] > 0 ? 1 : 0)] + "ED on the " +
-								gameIndex[i[3]] + " with a " +
-								handIndex[i[1] / 100] + " (" + i[1] % 100 +  ")");
-						updateKeyOutcomes(-1,1);
+						updateKeyOutcomes(1,0);
 						//possible confusion if earlier moves are considered victories if it made a good fold too late
 					} else {
 						updateKeyOutcomes(-1,0);
@@ -519,6 +528,7 @@ public class PokerrMain {
 					if (CSV)
 						printCSV();
 					iterations3++;
+					printGlobalString();
 				}
 
 				for (int j = pots.size() - 1; j >= 0; j--) {
