@@ -259,8 +259,10 @@ public class PokerrMain {
 							for (int[] i : getKeys()) 
 								qPrint(name + ": getKeys:" + Arrays.toString(i));
 						} else {
-							if (bank > startBank)
+							if (bank > startBank) {
+								qPrint(name + ": Scared 'em off!");
 								winFdbk(true, null, 0);
+							}
 						}
 					}		
 
@@ -333,7 +335,7 @@ public class PokerrMain {
 
 						weight *= Math.pow(1.0 - ((double)i[returnIndex] / ((double)players.size() * (double)STARTING_BANK)),2);
 
-						if (i[decisionIndex] == 1 && gameStage == 0)
+						if (i[decisionIndex] == 1) //&& gameStage == 0)
 							weight *= (((double)getBet()/(double)bank)/2.0) + 0.5;
 
 						weight = 1 / weight;
@@ -347,14 +349,14 @@ public class PokerrMain {
 
 				} // for
 				evaluation /= totalWeight;
-				if (count == 0) evaluation = 1;
+				if (count < 3) evaluation = 1;
 
 				decision = evaluation >= 0 ? 0 : -1;
 				currentKey[decisionIndex] = evaluation >= 0 ? 1 : -1;
 
 				qPrint(Double.toString(evaluation) + " | " + Arrays.toString(currentKey) + " | " + keys.size());
 
-				if (count == 0) qPrint("\n" + name + ": Hmm, haven't seen this before.");
+				if (count < 3) qPrint("\n" + name + ": Hmm, haven't seen this before.");
 
 				qPrint("\n" + name + ": There are " +
 						currentKey[0] + " players playing for the pot.\n" + name + ": I have a " +
