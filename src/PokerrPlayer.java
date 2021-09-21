@@ -28,11 +28,11 @@ public abstract class PokerrPlayer {
 	// return >0 = bet/raise
 	abstract int evaluate();
 
-	void winFdbk(boolean win, int[] str, int potAmt) {
+	void winFdbk(boolean win, Card[] winningHand, int potAmt) {
 		// do nothing by default
 	}
 
-	public int[] strength(Card[] ce) {
+	public static int[] strength(Card[] ce) {
 		if (ce.length == 2 || ce[2] == null) {
 			int[] CEStrength = new int[] {0,0,0,0};
 			if (ce[0].value == ce[1].value)
