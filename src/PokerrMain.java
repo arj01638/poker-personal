@@ -356,7 +356,7 @@ public class PokerrMain {
 
 				qPrint(Double.toString(evaluation) + " | " + Arrays.toString(currentKey) + " | " + keys.size());
 
-				if (count < 3) qPrint("\n" + name + ": Hmm, haven't seen this before.");
+				if (count < 3) qPrint("\n" + name + ": Hmm, haven't seen this too often.");
 
 				qPrint("\n" + name + ": There are " +
 						currentKey[0] + " players playing for the pot.\n" + name + ": I have a " +
@@ -374,11 +374,11 @@ public class PokerrMain {
 			}
 
 			void scaleDecision() {
-				int BBscaler = (int) (currentKey[1]/100);
+				double BBscaler = ((currentKey[1]-currentKey[2])/100);
 				int scaleCap = bank / BB;
-				BBscaler *= scaleCap / 9;
-				BBscaler /= 2;
-				decision = BBscaler * BB;
+				BBscaler *= scaleCap / 9.0;
+				BBscaler /= 1.5;
+				decision = (int) BBscaler * BB;
 				if (decision + getBet() < BB)
 					decision = BB - getBet();
 				if (decision + getBet() < getBet() * 2)
