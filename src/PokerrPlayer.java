@@ -28,7 +28,7 @@ public abstract class PokerrPlayer {
 	// return >0 = bet/raise
 	abstract int evaluate();
 
-	void winFdbk(boolean win, int[] str) {
+	void winFdbk(boolean win, int[] str, int potAmt) {
 		// do nothing by default
 	}
 

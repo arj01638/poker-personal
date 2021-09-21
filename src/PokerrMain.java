@@ -170,14 +170,18 @@ public class PokerrMain {
 			// 7
 			LinkedList<int[]> keys = new LinkedList<int[]>();
 			int decision = 0;
-			int returnIndex = 4;
+			int returnIndex = 5;
 			int decisionIndex = returnIndex + 1;
 			int outcomeIndex = decisionIndex + 1;
+			int countIndex = outcomeIndex + 1;
 			int[] currentKey;
 			int activeKeys = 0;
 			int gameStage = 0;
 			int startBank = bank;
 			int startIteration = -1;
+			int cIndex = 0;
+			Card[] bestHand;
+			Card[] bestHandB;
 			String[] moveIndex = new String[] {"FOLD","PLAY"};
 
 			boolean debug = false;
@@ -192,14 +196,44 @@ public class PokerrMain {
 				return toReturn;
 			}
 
+			int getPlayerHash() {
+				LinkedList<PokerrPlayer> committedPlayers = committedPlayers();
+				int hash = 0;
+				for (PokerrPlayer i : committedPlayers) {
+					if (i != this)
+						hash += Math.pow(players.indexOf(i) + 1, 2);
+				}
+				return hash;
+			}
+
+			void consolidate() {
+				int[] cKey = keys.get(cIndex);
+				for (int[] i : keys) {
+					if (i != cKey) {
+						if (Arrays.equals(Arrays.copyOf(i, i.length - 1), Arrays.copyOf(cKey, cKey.length - 1))) {
+							qPrint(name + ": consolidating " + Arrays.toString(i) + " and " + Arrays.toString(cKey));
+							keys.remove(i);
+							cKey[countIndex] += i[countIndex];
+							qPrint(name + ": consolidated to " + Arrays.toString(cKey));
+							break;
+						}
+					}
+				}
+
+
+				cIndex++;
+				if (cIndex >= keys.size())
+					cIndex = 0;
+			}
+
 			@Override
 			public int evaluate() {
 				gameStage = getGameStage(board);
 
 				qPrint(name + ": stage:" + gameStage + "|" + "startIteration:" + startIteration + "|" + "currentIteration:" + iterations2);
-				for (int[] i : getKeys()) {
+				for (int[] i : getKeys()) 
 					qPrint(name + ": getKeys:" + Arrays.toString(i));
-				}
+
 				if (gameStage == 0 && startIteration != iterations2) {
 					qPrint(name + ": Flushing systems...");
 
@@ -211,25 +245,32 @@ public class PokerrMain {
 					}
 
 					if (keys.size() != 0 && keys.getLast()[outcomeIndex] == 0) {
-						qPrint(name + ": Removing undecided keys...");
+						/*qPrint(name + ": Removing undecided keys...");
 						for (int[] i : getKeys()) {
 							qPrint(name + ": Removed undecided key " + Arrays.toString(i));
 							keys.remove(i);
-						}
-					} else {
-						/*for (int[] i : getKeys())
-							i[returnIndex] = Math.abs(bank - startBank);
-						for (int[] i : getKeys()) {
-							qPrint(name + ": getKeys with returns:" + Arrays.toString(i));
 						}*/
-					}
-					
-					
-
+						qPrint(name + ": Undecided keys are a loss.");
+						for (int[] i : getKeys()) {
+							i[outcomeIndex] = -1;
+							i[returnIndex] = Math.abs(bank - startBank);
+						}
+						for (int[] i : getKeys()) 
+							qPrint(name + ": getKeys:" + Arrays.toString(i));
+					}		
 
 					startBank = bank;
 					activeKeys = 0;
 					startIteration = iterations2;
+
+					if (keys.size() != 0) {
+						int cCount = 0;
+						int initSize = keys.size();
+						while (keys.size() != initSize - 2 && cCount < 10) {
+							consolidate();
+							cCount++;
+						}
+					}
 				}
 
 				if (committedPlayers().size() == 0 
@@ -237,20 +278,25 @@ public class PokerrMain {
 						|| (activePlayers().size() == 1 && getBet() == 0)) {
 					qPrint(name + ": " + "Size is 0 or size is 1 and I'm last, checking.");
 					if (bank > startBank)
-						winFdbk(true, null);
+						winFdbk(true, null, 0);
 					return 0;
 				}
 
-				int[] strengthHand = strength(bestHand(board,true));
-				int[] strengthBoard = strength(bestHand(board,false));
+				bestHand = bestHand(board,true);
+				bestHandB = bestHand(board,false);
+				
+				int[] strengthHand = strength(bestHand);
+				int[] strengthBoard = strength(bestHandB);
 				currentKey = new int[] {
 						committedPlayers().size(),
 						(strengthHand[0] * 100) + strengthHand[2],
 						gameStage != 0 ? (strengthBoard[0] * 100) + strengthBoard[2] : 0,
 								gameStage,
-								0, //return
-								1,
-								0
+								getPlayerHash(), // player "hash"?
+								0, // return
+								1, // decision
+								0, // outcome
+								1, // count
 				};
 
 				if (keys.size() != 0 && currentKey[3] == keys.getLast()[3] && currentKey[outcomeIndex] == keys.getLast()[outcomeIndex]) {
@@ -263,29 +309,36 @@ public class PokerrMain {
 				double weight = 0;
 				double totalWeight = 0;
 				for (int[] i : keys) {
-					if (i[3] != currentKey[3] || Math.abs(i[0] - currentKey[0]) > 1) continue;
+					for (int j = 0; j < i[countIndex]; j++) {
+						if (i[3] != currentKey[3] 
+								|| Math.abs(i[0] - currentKey[0]) > 1
+								|| i[4] != currentKey[4]) continue;
 
-					weight = Math.pow((i[0] - currentKey[0]) * 35,4)
-							+ Math.pow(i[1] - currentKey[1], 4)
-							+ Math.pow(i[2] - currentKey[2], 4);
-					weight *= .000002;
-					if (weight < 1)
-						weight = 1;
+						weight = Math.pow((i[0] - currentKey[0]) * 35,4)
+								+ Math.pow(i[1] - currentKey[1], 4)
+								+ Math.pow(i[2] - currentKey[2], 4);
+						weight *= .000002;
+						if (weight < 1)
+							weight = 1;
 
-					if (Arrays.equals(Arrays.copyOf(i, i.length - 3), Arrays.copyOf(currentKey, currentKey.length - 3))) {
-						weight *= .75;
-						count++;
-					} // if
+						if (Arrays.equals(Arrays.copyOf(i, returnIndex), Arrays.copyOf(currentKey, returnIndex))) {
+							weight *= .75;
+							count++;
+						} // if
 
-					weight *= Math.pow(1.0 - ((double)i[returnIndex] / ((double)players.size() * (double)STARTING_BANK)),2);
+						weight *= Math.pow(1.0 - ((double)i[returnIndex] / ((double)players.size() * (double)STARTING_BANK)),2);
 
-					weight = 1 / weight;
+						if (i[decisionIndex] == 1 && gameStage == 0)
+							weight *= (((double)getBet()/(double)bank)/2.0) + 0.5;
+						
+						weight = 1 / weight;
 
-					totalWeight += weight;
-					evaluation += (i[decisionIndex] * i[outcomeIndex]) * weight;
+						totalWeight += weight;
+						evaluation += (i[decisionIndex] * i[outcomeIndex]) * weight;
 
-					if (debug)
-						qPrint(Arrays.toString(i) + " | " + Double.toString(weight) + " | " + Double.toString(evaluation / totalWeight));
+						if (debug)
+							qPrint(Arrays.toString(i) + " | " + Double.toString(weight) + " | " + Double.toString(evaluation / totalWeight));
+					}
 
 				} // for
 				evaluation /= totalWeight;
@@ -352,10 +405,11 @@ public class PokerrMain {
 			//TODO: good folds but net negative act like they won that cash...
 
 			@Override
-			void winFdbk(boolean win, int[] str) {
+			void winFdbk(boolean win, int[] str, int potAmt) {
 				startIteration = 0;
 				for (int[] i : getKeys())
 					i[returnIndex] = Math.abs(bank - startBank);
+
 				for (int[] i : getKeys()) {
 					qPrint(name + ": getKeys with returns:" + Arrays.toString(i));
 				}
@@ -368,8 +422,12 @@ public class PokerrMain {
 					} else {
 						updateKeyOutcomes(-1,0);
 					}
+					for (int[] i : getKeys()) {
+						if (potAmt != 0 && i[decisionIndex] == -1 && i[outcomeIndex] == -1)
+							i[returnIndex] = potAmt;
+					}
 				}
-				
+
 			}
 		});
 	}
@@ -640,6 +698,58 @@ public class PokerrMain {
 		} // for*
 	} // evaluateBetter
 
+	int decideWinner(Card[] first, Card[] second) {
+		int decision = 0;
+		
+		int[] strengthFirst = PokerrPlayer.strength(first);
+		int[] strengthSecond = PokerrPlayer.strength(second);
+		
+		
+		if (PokerrPlayer.strength(pBestHand)[0] > PokerrPlayer.strength(winnerBestHand)[0]) {
+			winner = p;
+		} else if (PokerrPlayer.strength(pBestHand)[0] == PokerrPlayer.strength(winnerBestHand)[0] && p != winner) {
+			if (PokerrPlayer.strength(winnerBestHand)[2] < PokerrPlayer.strength(pBestHand)[2]) {
+				winner = p;
+			} else if (winner.strength(winnerBestHand)[2] == p.strength(pBestHand)[2]){
+
+				if (winner.strength(winnerBestHand)[3] < p.strength(pBestHand)[3]) {
+					winner = p;
+				} else {
+					Integer[] winnerVals = new Integer[] {
+							winnerBestHand[0].value,
+							winnerBestHand[1].value,
+							winnerBestHand[2].value,
+							winnerBestHand[3].value,
+							winnerBestHand[4].value
+					};
+					Integer[] pVals = new Integer[] {
+							pBestHand[0].value,
+							pBestHand[1].value,
+							pBestHand[2].value,
+							pBestHand[3].value,
+							pBestHand[4].value
+					};
+
+					Arrays.sort(winnerVals, Collections.reverseOrder());
+					Arrays.sort(pVals, Collections.reverseOrder());
+
+					for (int i = 0; i < 5; i++) {
+						if (winnerVals[i] < pVals[i]) {
+							winner = p;
+							break;
+						} // if	
+						if (winnerVals[i] > pVals[i]) {
+							break;
+						} // if
+					} // for
+				}
+			} // if
+		} // if
+				
+		
+		return decision;
+	}
+	
 	void showdown(int pot, LinkedList<PokerrPlayer> activePlayers) {
 		PokerrPlayer winner = activePlayers.get(0);
 		for(PokerrPlayer p : activePlayers) {
@@ -725,10 +835,10 @@ public class PokerrMain {
 			if (PRINT)
 				qPrint("$$$ " + winner.name + "(" + players.indexOf(winner) + ")" + " wins " + pot + " $$$");
 			winner.bank += pot;
-			winner.winFdbk(true, null);
+			winner.winFdbk(true, null,pot);
 			for (PokerrPlayer p : players) {
 				if (p != winner) {
-					p.winFdbk(false,winner.strength(winner.bestHand(board,true)));
+					p.winFdbk(false,winner.strength(winner.bestHand(board,true)),pot);
 				}
 			}
 		} else {
@@ -737,11 +847,11 @@ public class PokerrMain {
 				if (PRINT)
 					qPrint("$$$ " + p.name + "(" + players.indexOf(p) + ")" +  " wins " + (pot / counter) + " $$$");
 				p.bank += Math.round(pot / counter);
-				p.winFdbk(true, null);
+				p.winFdbk(true, null, pot / counter);
 			}
 			for (PokerrPlayer p : players) {
 				if (!winners.contains(p)) {
-					p.winFdbk(false,winner.strength(winner.bestHand(board,true)));
+					p.winFdbk(false,winner.strength(winner.bestHand(board,true)), pot / counter);
 				}
 			}
 
