@@ -56,7 +56,7 @@ public class PokerrMain {
 		 * Folds ~1/11 of the time.
 		 * Else, makes random move.
 		 */
-		addPlayer(true, "Dornk", new PokerrPlayer(this) {
+		addPlayer(false, "Dornk", new PokerrPlayer(this) {
 			@Override
 			int evaluate() {
 				int decision = (BB/5)*ThreadLocalRandom.current().nextInt(-1, 10);
@@ -80,7 +80,7 @@ public class PokerrMain {
 		 * Always minbets if no bet is facing it.
 		 * Never folds.	
 		 */
-		addPlayer(true,"OptyMB", new PokerrPlayer(this) {
+		addPlayer(false,"OptyMB", new PokerrPlayer(this) {
 			@Override
 			public int evaluate() {
 				int betfacing = getBet();
@@ -103,7 +103,7 @@ public class PokerrMain {
 		 * Goes all-in if it has anything better than a high card.
 		 * Folds otherwise (except pre-flop).
 		 */
-		addPlayer(false,"Alli_MK1", new PokerrPlayer(this) {
+		addPlayer(true,"Alli_MK1", new PokerrPlayer(this) {
 			@Override
 			public int evaluate() {
 				int betfacing = getBet();
@@ -124,7 +124,7 @@ public class PokerrMain {
 		 * Goes all-in if it has anything better than a pair.
 		 * Folds otherwise (except pre-flop).
 		 */
-		addPlayer(false,"Alli_MK2", new PokerrPlayer(this) {
+		addPlayer(true,"Alli_MK2", new PokerrPlayer(this) {
 			@Override
 			public int evaluate() {
 				int betfacing = getBet();
@@ -145,7 +145,7 @@ public class PokerrMain {
 		 * Goes all-in if it has anything better than a high card that's not on the board.
 		 * Folds otherwise (except pre-flop).
 		 */
-		addPlayer(false,"Alli_MK3", new PokerrPlayer(this) {
+		addPlayer(true,"Alli_MK3", new PokerrPlayer(this) {
 			@Override
 			public int evaluate() {
 				int betfacing = getBet();
@@ -180,6 +180,7 @@ public class PokerrMain {
 			int startBank = bank;
 			int startIteration = -1;
 			int cIndex = 0;
+			int cTotal = 0;
 			Card[] bestHand;
 			Card[] bestHandB;
 			String[] moveIndex = new String[] {"FOLD","PLAY"};
@@ -207,6 +208,8 @@ public class PokerrMain {
 			}
 
 			void consolidate() {
+				if (cIndex >= keys.size())
+					cIndex = 0;
 				int[] cKey = keys.get(cIndex);
 				for (int[] i : keys) {
 					if (i != cKey) {
@@ -214,6 +217,8 @@ public class PokerrMain {
 							qPrint(name + ": consolidating " + Arrays.toString(i) + " and " + Arrays.toString(cKey));
 							keys.remove(i);
 							cKey[countIndex] += i[countIndex];
+							//cTotal += i[countIndex];
+							cTotal++;
 							qPrint(name + ": consolidated to " + Arrays.toString(cKey));
 							break;
 						}
@@ -237,7 +242,7 @@ public class PokerrMain {
 				if (gameStage == 0 && startIteration != iterations2) {
 					qPrint(name + ": Flushing systems...");
 
-					if (iterations > 1 && iterations % 1000 == 0 && iterations2 < 2	) {
+					if (iterations > 1 && iterations % 1000 == 0 && iterations2 < 2	&& false) {
 						if (totalWinnings < iterations) {
 							qPrint(name + ": This isn't working...");
 							keys = new LinkedList<int[]>();
@@ -273,7 +278,7 @@ public class PokerrMain {
 					if (keys.size() != 0) {
 						int cCount = 0;
 						int initSize = keys.size();
-						while (keys.size() != initSize - 2 && cCount < 5) {
+						while (keys.size() != initSize - 1 && cCount < 4) {
 							consolidate();
 							cCount++;
 						}
@@ -315,49 +320,82 @@ public class PokerrMain {
 				int count = 0;
 				double weight = 0;
 				double totalWeight = 0;
-				for (int[] i : keys) {
-					for (int j = 0; j < i[countIndex]; j++) {
-						if (i[3] != currentKey[3] 
-								|| Math.abs(i[0] - currentKey[0]) > 1
-								|| i[4] != currentKey[4]) continue;
-
-						weight = Math.pow((i[0] - currentKey[0]) * 35,4)
-								+ Math.pow(i[1] - currentKey[1], 4)
-								+ Math.pow(i[2] - currentKey[2], 4);
-						weight *= .000002;
-						if (weight < 1)
-							weight = 1;
-
-						if (Arrays.equals(Arrays.copyOf(i, returnIndex), Arrays.copyOf(currentKey, returnIndex))) {
-							weight *= .75;
-							count++;
-						} // if
-
-						weight *= Math.pow(1.0 - ((double)i[returnIndex] / ((double)players.size() * (double)STARTING_BANK)),2);
-
-						if (i[decisionIndex] == 1) //&& gameStage == 0)
-							weight *= (((double)getBet()/(double)bank)/2.0) + 0.5;
-
-						weight = 1 / weight;
-
-						totalWeight += weight;
-						evaluation += (i[decisionIndex] * i[outcomeIndex]) * weight;
-
-						if (debug)
-							qPrint(Arrays.toString(i) + " | " + Double.toString(weight) + " | " + Double.toString(evaluation / totalWeight));
+				boolean shortCircuit = false;
+				
+				if (bank <= 2*BB) {
+					if (gameStage == 0)
+						evaluation = 1;
+					else if (currentKey[1] - currentKey[2] < 100 && gameStage > 0) {
+						evaluation = -1;
+					} else if (gameStage > 0) {
+						evaluation = 1;
 					}
+					shortCircuit = true;
+				}
+				
+				if (shortCircuit) count = 999;
+				
+				if (!shortCircuit) {
+					for (int[] i : keys) {
+						for (int j = 0; j < i[countIndex]; j++) {
+							if (i[3] != currentKey[3] 
+									|| Math.abs(i[0] - currentKey[0]) > 1
+									|| i[4] != currentKey[4]) continue;
 
-				} // for
-				evaluation /= totalWeight;
-				if (count < 3) evaluation = 1;
+							weight = Math.pow((i[0] - currentKey[0]) * 35,4)
+									+ Math.pow(i[1] - currentKey[1], 4)
+									+ Math.pow(i[2] - currentKey[2], 4);
+							weight *= .000002;
+							if (weight < 1)
+								weight = 1;
+
+							if (Arrays.equals(Arrays.copyOf(i, returnIndex), Arrays.copyOf(currentKey, returnIndex))) {
+								weight *= .75;
+								count++;
+							} // if
+
+							weight *= Math.pow(1.0 - ((double)i[returnIndex] / ((double)players.size() * (double)STARTING_BANK)),2);
+
+							if (i[decisionIndex]*i[outcomeIndex] == 1 && getBet() <= BB)
+								//&& ((double)getBet()/(double)bank) <= 1.0)
+								weight *= (((double)getBet()/(double)bank)/2.0) + 0.5;
+
+							if (gameStage > 0 && (getBet() >= bank || getBet() > 4*BB) && i[decisionIndex]*i[outcomeIndex] == 1
+									&& i[1] - i[2] < 100)
+								weight *= 3 + ((double)getBet() / (double)bank);
+
+							weight = 1 / weight;
+							totalWeight += weight;
+
+							if (gameStage > 0 && getBet() >= bank && i[1] - i[2] < 100 && i[decisionIndex]*i[outcomeIndex] == 1)
+								weight *= -1;
+
+							evaluation += (i[decisionIndex] * i[outcomeIndex]) * weight;
+
+							if (debug)
+								qPrint(Arrays.toString(i) + " | " + Double.toString(weight) + " | " + Double.toString(evaluation / totalWeight));
+						}
+
+					} // for
+					evaluation /= totalWeight;
+				} // if
+
+				if (count < 1) evaluation = 1;
 
 				decision = evaluation >= 0 ? 0 : -1;
 				currentKey[decisionIndex] = evaluation >= 0 ? 1 : -1;
 
-				qPrint(Double.toString(evaluation) + " | " + Arrays.toString(currentKey) + " | " + keys.size());
+				int percent = 100;
+				if (keys.size() != 0)
+					percent = (keys.size() * 100) / (keys.size() + cTotal);
 
-				if (count < 3) qPrint("\n" + name + ": Hmm, haven't seen this too often.");
+				qPrint(name + ": I evaluate " + Double.toString(evaluation) + " (" + Arrays.toString(currentKey) + ").\n" 
+						+ name + ": Key size is " + keys.size() + " (consolidated to " + percent + "% of theoretical).");
 
+				if (count < 1) qPrint("\n" + name + ": Hmm, haven't seen this too often.");
+
+				if (shortCircuit) qPrint(name + ": Resorting to preprogrammed move...");
+				
 				qPrint("\n" + name + ": There are " +
 						currentKey[0] + " players playing for the pot.\n" + name + ": I have a " +
 						handIndex[strengthHand[0]] + " (" + strengthHand[2] +  ") and the board has a " + 
@@ -368,17 +406,18 @@ public class PokerrMain {
 				keys.add(currentKey);
 				activeKeys++;
 
-				if (decision != -1) scaleDecision();
+				if (decision != -1) scaleDecision(evaluation == 1.000 ? 0 : evaluation);
 
 				return decision;
 			}
 
-			void scaleDecision() {
+			void scaleDecision(double evaluation) {
 				double BBscaler = ((currentKey[1]-currentKey[2])/100);
-				int scaleCap = bank / BB;
+				int scaleCap = (bank > STARTING_BANK / 2 ? bank : STARTING_BANK / 2) / BB;
 				BBscaler *= scaleCap / 9.0;
-				BBscaler /= 1.5;
+				BBscaler /= 1.75;
 				decision = (int) BBscaler * BB;
+				decision *= Math.pow(evaluation + 1, 3);
 				if (decision + getBet() < BB)
 					decision = BB - getBet();
 				if (decision + getBet() < getBet() * 2)
@@ -1146,7 +1185,8 @@ public class PokerrMain {
 			Collections.reverse(y);
 			x = y.toArray(new PokerrPlayer[0]);
 			for (PokerrPlayer p : x) {
-				qPrint(p.name + "(" + players.indexOf(p) + ")" + " winnings: " + p.totalWinnings);
+				qPrint(p.name + "(" + players.indexOf(p) + ")" + " winnings: " + p.totalWinnings
+						+ " (" + (p.totalWinnings / iterations) + ")");
 			}
 		}
 		if (mode == 3 && PRINT && !SPEED) {
