@@ -12,7 +12,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public class PokerrMain {
 
 
-	final int ROUNDS = 5000;
+	final int ROUNDS = 500;
 	boolean PRINT = true;
 	boolean SPEED = false;
 	final int BB = 500;
@@ -166,8 +166,14 @@ public class PokerrMain {
 		 * ???
 		 */
 		addPlayer(true,"Add'y", new PokerrPlayer(this) {
-			// playerAmt, hand strength, board strength, gameStage, count, return, decision, outcome
-			// 7
+			//params
+			//i will call if i haven't seen this scenario exactly countThreshold or more times.
+			final int COUNT_THRESHOLD = 1;
+			boolean debug = false;
+			boolean verboseDebug = false;
+			final int START_DEBUG_ITERATION = 490;
+			
+			// playerAmt, hand strength, board strength, gameStage, count, return, decision, outcome			
 			LinkedList<int[]> keys = new LinkedList<int[]>();
 			int decision = 0;
 			int returnIndex = 5;
@@ -185,8 +191,7 @@ public class PokerrMain {
 			Card[] bestHandB;
 			double evaluation;
 			String[] moveIndex = new String[] {"FOLD","PLAY"};
-
-			boolean debug = false;
+			
 
 			LinkedList<int[]> getKeys() {
 				LinkedList<int[]> toReturn = new LinkedList<int[]>();
@@ -234,6 +239,10 @@ public class PokerrMain {
 
 			@Override
 			public int evaluate() {
+				if (iterations >= START_DEBUG_ITERATION) {
+					debug = true;
+					verboseDebug = true;
+				}
 				gameStage = getGameStage(board);
 
 				qPrint(name + ": stage:" + gameStage + "|" + "startIteration:" + startIteration + "|" + "currentIteration:" + iterations2);
@@ -243,6 +252,7 @@ public class PokerrMain {
 				if (gameStage == 0 && startIteration != iterations2) {
 					qPrint(name + ": Flushing systems...");
 
+					//TODO: have a competitive phase based approach for a keys list
 					if (iterations > 1 && iterations % 1000 == 0 && iterations2 < 2	&& false) {
 						if (totalWinnings < iterations) {
 							qPrint(name + ": This isn't working...");
@@ -339,7 +349,7 @@ public class PokerrMain {
 					shortCircuit = true;
 				}
 
-				if (shortCircuit) count = 999;
+				if (shortCircuit) count = COUNT_THRESHOLD;
 
 				if (!shortCircuit) {
 					for (int[] i : keys) {
@@ -347,37 +357,57 @@ public class PokerrMain {
 							if (i[3] != currentKey[3] 
 									|| Math.abs(i[0] - currentKey[0]) > 1
 									|| i[4] != currentKey[4]) continue;
-
+							if (verboseDebug) qPrint(Arrays.toString(i));
 							weight = Math.pow((i[0] - currentKey[0]) * 35,4)
 									+ Math.pow(i[1] - currentKey[1], 4)
 									+ Math.pow(i[2] - currentKey[2], 4);
+							
+							if (verboseDebug) qPrint("Initial Sum: " + weight);
+							
 							weight *= .000002;
+							
+							if (verboseDebug) qPrint("*= .000002: " + weight);
+							
 							if (weight < 1)
 								weight = 1;
-
+							
+							if (verboseDebug) qPrint("If < 1, =1: " + weight);
+							
 							if (Arrays.equals(Arrays.copyOf(i, returnIndex), Arrays.copyOf(currentKey, returnIndex))) {
 								weight *= .75;
 								count++;
 							} // if
+							
+							if (verboseDebug) qPrint("If exact same: " + weight);
 
 							weight *= Math.pow(1.0 - ((double)i[returnIndex] / ((double)players.size() * (double)STARTING_BANK)),2);
-
+							
+							if (verboseDebug) qPrint("Return Weighting: " + weight);
+							
 							if (i[decisionIndex]*i[outcomeIndex] == 1 && getBet() <= BB)
 								//&& ((double)getBet()/(double)bank) <= 1.0)
 								weight *= (((double)getBet()/(double)bank)/2.0) + 0.5;
 
+							if (verboseDebug) qPrint("If low bet, call weight: " + weight);
+							
 							if (gameStage > 0 
 									&& (getBet() >= bank || getBet() > 4*BB) 
 									&& i[decisionIndex]*i[outcomeIndex] == 1
 									&& powerDifference(i[1], i[2]) < 1)
 								weight *= 2 + ((double)getBet() / (double)bank);
+							
+							if (verboseDebug) qPrint("If big bet post flop&power dif<1, weigh against call: " + weight);
+							
 							if (gameStage > 0 
 									&& (getBet() >= bank || getBet() > 4*BB) 
 									&& i[decisionIndex]*i[outcomeIndex] == 1
 									&& powerDifference(i[1], i[2]) < 2)
 								weight *= 2 + ((double)getBet() / (double)bank);
+							
+							if (verboseDebug) qPrint("If big bet post flop&power dif<2, weigh against call: " + weight);
 
 							weight = 1 / weight;
+							if (verboseDebug) qPrint("inverse: " + weight);
 							totalWeight += weight;
 
 							if (gameStage > 0 
@@ -385,6 +415,7 @@ public class PokerrMain {
 									&& powerDifference(i[1], i[2]) < 1 
 									&& i[decisionIndex]*i[outcomeIndex] == 1)
 								weight *= -1;
+							if (verboseDebug) qPrint("if all in and power dif<1, flip call!: " + weight);
 
 							evaluation += (i[decisionIndex] * i[outcomeIndex]) * weight;
 
@@ -396,8 +427,8 @@ public class PokerrMain {
 					evaluation /= totalWeight;
 				} // if
 
-				if (iterations > 1000) count = 1;
-				if (count < 1) evaluation = 1;
+				//if (iterations > 1000) count = COUNT_THRESHOLD;
+				if (count < COUNT_THRESHOLD) evaluation = 1;
 
 				decision = evaluation >= 0 ? 0 : -1;
 				currentKey[decisionIndex] = evaluation >= 0 ? 1 : -1;
@@ -409,7 +440,7 @@ public class PokerrMain {
 				qPrint(name + ": I evaluate " + Double.toString(evaluation) + " (" + Arrays.toString(currentKey) + ").\n" 
 						+ name + ": Key size is " + keys.size() + " (consolidated to " + percent + "% of theoretical).");
 
-				if (count < 1) qPrint("\n" + name + ": Hmm, haven't seen this too often.");
+				if (count < COUNT_THRESHOLD) qPrint("\n" + name + ": Hmm, haven't seen this too often.");
 
 				if (shortCircuit) qPrint(name + ": Resorting to preprogrammed move...");
 
