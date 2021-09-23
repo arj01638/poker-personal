@@ -56,7 +56,7 @@ public class PokerrMain {
 		 * Folds ~1/11 of the time.
 		 * Else, makes random move.
 		 */
-		addPlayer(false, "Dornk", new PokerrPlayer(this) {
+		addPlayer(true, "Dornk", new PokerrPlayer(this) {
 			@Override
 			int evaluate() {
 				int decision = (BB/5)*ThreadLocalRandom.current().nextInt(-1, 10);
@@ -80,7 +80,7 @@ public class PokerrMain {
 		 * Always minbets if no bet is facing it.
 		 * Never folds.	
 		 */
-		addPlayer(false,"OptyMB", new PokerrPlayer(this) {
+		addPlayer(true,"OptyMB", new PokerrPlayer(this) {
 			@Override
 			public int evaluate() {
 				int betfacing = getBet();
@@ -183,6 +183,7 @@ public class PokerrMain {
 			int cTotal = 0;
 			Card[] bestHand;
 			Card[] bestHandB;
+			double evaluation;
 			String[] moveIndex = new String[] {"FOLD","PLAY"};
 
 			boolean debug = false;
@@ -250,19 +251,22 @@ public class PokerrMain {
 					}
 
 					if (keys.size() != 0 && keys.getLast()[outcomeIndex] == 0) {
-						/*qPrint(name + ": Removing undecided keys...");
-						for (int[] i : getKeys()) {
-							qPrint(name + ": Removed undecided key " + Arrays.toString(i));
-							keys.remove(i);
-						}*/
 						if (keys.getLast()[decisionIndex] == -1) {
 							qPrint(name + ": Undecided keys are a loss.");
-							for (int[] i : getKeys()) {
-								i[outcomeIndex] = -1;
-								i[returnIndex] = Math.abs(bank - startBank);
+							if (evaluation < -0.9) {
+								qPrint(name + ": ... *usually*, but this time I was pretty sure.");
+								for (int[] i : getKeys()) {
+									qPrint(name + ": Removing " + Arrays.toString(i));
+									keys.remove(i);
+								}
+							} else {
+								for (int[] i : getKeys()) {
+									i[outcomeIndex] = -1;
+									i[returnIndex] = Math.abs(bank - startBank);
+								}
+								for (int[] i : getKeys()) 
+									qPrint(name + ": getKeys:" + Arrays.toString(i));
 							}
-							for (int[] i : getKeys()) 
-								qPrint(name + ": getKeys:" + Arrays.toString(i));
 						} else {
 							if (bank > startBank) {
 								qPrint(name + ": Scared 'em off!");
@@ -304,7 +308,7 @@ public class PokerrMain {
 						(strengthHand[0] * 100) + strengthHand[2],
 						gameStage != 0 ? (strengthBoard[0] * 100) + strengthBoard[2] : 0,
 								gameStage,
-								getPlayerHash(), // player "hash"?
+								getPlayerHash(), // player "hash"
 								0, // return
 								1, // decision
 								0, // outcome
@@ -316,12 +320,12 @@ public class PokerrMain {
 					keys.remove(keys.getLast());
 					activeKeys--;
 				}
-				double evaluation = 0;
+				evaluation = 0;
 				int count = 0;
 				double weight = 0;
 				double totalWeight = 0;
 				boolean shortCircuit = false;
-				
+
 				if (bank <= 2*BB) {
 					if (gameStage == 0)
 						evaluation = 1;
@@ -332,9 +336,9 @@ public class PokerrMain {
 					}
 					shortCircuit = true;
 				}
-				
+
 				if (shortCircuit) count = 999;
-				
+
 				if (!shortCircuit) {
 					for (int[] i : keys) {
 						for (int j = 0; j < i[countIndex]; j++) {
@@ -360,14 +364,24 @@ public class PokerrMain {
 								//&& ((double)getBet()/(double)bank) <= 1.0)
 								weight *= (((double)getBet()/(double)bank)/2.0) + 0.5;
 
-							if (gameStage > 0 && (getBet() >= bank || getBet() > 4*BB) && i[decisionIndex]*i[outcomeIndex] == 1
-									&& i[1] - i[2] < 100)
-								weight *= 3 + ((double)getBet() / (double)bank);
+							if (gameStage > 0 
+									&& (getBet() >= bank || getBet() > 4*BB) 
+									&& i[decisionIndex]*i[outcomeIndex] == 1
+									&& powerDifference(i[1], i[2]) < 1)
+								weight *= 2 + ((double)getBet() / (double)bank);
+							if (gameStage > 0 
+									&& (getBet() >= bank || getBet() > 4*BB) 
+									&& i[decisionIndex]*i[outcomeIndex] == 1
+									&& powerDifference(i[1], i[2]) < 2)
+								weight *= 2 + ((double)getBet() / (double)bank);
 
 							weight = 1 / weight;
 							totalWeight += weight;
 
-							if (gameStage > 0 && getBet() >= bank && i[1] - i[2] < 100 && i[decisionIndex]*i[outcomeIndex] == 1)
+							if (gameStage > 0 
+									&& getBet() >= bank 
+									&& powerDifference(i[1], i[2]) < 1 
+									&& i[decisionIndex]*i[outcomeIndex] == 1)
 								weight *= -1;
 
 							evaluation += (i[decisionIndex] * i[outcomeIndex]) * weight;
@@ -380,6 +394,7 @@ public class PokerrMain {
 					evaluation /= totalWeight;
 				} // if
 
+				if (iterations > 1000) count = 1;
 				if (count < 1) evaluation = 1;
 
 				decision = evaluation >= 0 ? 0 : -1;
@@ -395,7 +410,7 @@ public class PokerrMain {
 				if (count < 1) qPrint("\n" + name + ": Hmm, haven't seen this too often.");
 
 				if (shortCircuit) qPrint(name + ": Resorting to preprogrammed move...");
-				
+
 				qPrint("\n" + name + ": There are " +
 						currentKey[0] + " players playing for the pot.\n" + name + ": I have a " +
 						handIndex[strengthHand[0]] + " (" + strengthHand[2] +  ") and the board has a " + 
@@ -411,6 +426,11 @@ public class PokerrMain {
 				return decision;
 			}
 
+			int powerDifference(int first, int second) {
+				first /= 100;
+				second /= 100;
+				return first - second;
+			}
 			void scaleDecision(double evaluation) {
 				double BBscaler = ((currentKey[1]-currentKey[2])/100);
 				int scaleCap = (bank > STARTING_BANK / 2 ? bank : STARTING_BANK / 2) / BB;
@@ -447,8 +467,6 @@ public class PokerrMain {
 					if (y > 0) y--;
 				}
 			} // updateKeyOutcomes
-
-			//TODO: good folds but net negative act like they won that cash...
 
 			@Override
 			void winFdbk(boolean win, Card[] winningHand, int potAmt) {
