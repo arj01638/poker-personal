@@ -287,6 +287,8 @@ public class PokerrMain {
 							cCount++;
 						}
 					}
+					
+					qPrint("");
 				}
 
 				if (committedPlayers().size() == 0 
