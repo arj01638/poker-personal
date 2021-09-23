@@ -12,13 +12,14 @@ import java.util.concurrent.ThreadLocalRandom;
 public class PokerrMain {
 
 
-	final int ROUNDS = 500;
+	final int ROUNDS = 5000;
 	boolean PRINT = true;
 	boolean SPEED = false;
 	final int BB = 500;
 	final int SB = BB / 2;
 	boolean TEST = false;
 	boolean CSV = true;
+	boolean STOP_WHEN_LAST_PLAYER_WINS = false;
 
 
 
@@ -36,6 +37,7 @@ public class PokerrMain {
 	int iterations;
 	int iterations2;
 	int iterations3;
+	boolean endEarly = false;
 
 	final String[] gameIndex = new String[] {"PREFLOP","FLOP","TURN","RIVER","SHOWDOWN"};
 
@@ -169,10 +171,15 @@ public class PokerrMain {
 			//params
 			//i will call if i haven't seen this scenario exactly countThreshold or more times.
 			final int COUNT_THRESHOLD = 1;
+			//print general debug info
 			boolean debug = false;
+			//step by step weighting process detailed :O
 			boolean verboseDebug = false;
-			final int START_DEBUG_ITERATION = 490;
-			
+			//will switch on debug & verbose debug at this specified iteration
+			final int START_DEBUG_ITERATION = Integer.MAX_VALUE; //ROUNDS - 5;
+			//how many iterations between assess phases. "rounds" are 2x this number.
+			final int ASSESS_INTERVAL = 100;
+
 			// playerAmt, hand strength, board strength, gameStage, count, return, decision, outcome			
 			LinkedList<int[]> keys = new LinkedList<int[]>();
 			int decision = 0;
@@ -191,7 +198,15 @@ public class PokerrMain {
 			Card[] bestHandB;
 			double evaluation;
 			String[] moveIndex = new String[] {"FOLD","PLAY"};
-			
+
+			//assess variables
+			double lastWinnings = 0.0;
+			LinkedList<LinkedList<int[]>> masterKeys = new LinkedList<LinkedList<int[]>>();
+			int keyIndex = 0;
+			LinkedList<Double> performanceVals = new LinkedList<Double>();
+			boolean nextStage = false;
+
+
 
 			LinkedList<int[]> getKeys() {
 				LinkedList<int[]> toReturn = new LinkedList<int[]>();
@@ -223,7 +238,6 @@ public class PokerrMain {
 							qPrint(name + ": consolidating " + Arrays.toString(i) + " and " + Arrays.toString(cKey));
 							keys.remove(i);
 							cKey[countIndex] += i[countIndex];
-							//cTotal += i[countIndex];
 							cTotal++;
 							qPrint(name + ": consolidated to " + Arrays.toString(cKey));
 							break;
@@ -235,6 +249,57 @@ public class PokerrMain {
 				cIndex++;
 				if (cIndex >= keys.size())
 					cIndex = 0;
+			}
+
+			private <T> LinkedList<T> deepClone(LinkedList<T> x) {
+				LinkedList<T> y = new LinkedList<T>();
+				for (T i : x) y.add(i);
+				return y;
+			}
+			
+			void assessPerformance() {
+				qPrint("");
+
+				for (LinkedList<int[]> i : masterKeys)
+					qPrint(i.size());
+				
+				qPrint(name + ": Assessing performance...");
+				masterKeys.add(deepClone(keys));
+				performanceVals.add(totalWinnings - lastWinnings);
+				qPrint(name + ": Current improvement: " + (totalWinnings - lastWinnings));
+				qPrint(name + ": this set has length " + keys.size());
+
+				if (!nextStage) {
+					qPrint(name + ": Let's try out a new set of keys." );
+					if (masterKeys.size() == 1) {
+						keys = new LinkedList<int[]>();
+					} else { keys = deepClone(masterKeys.get(keyIndex)); }
+
+					nextStage = true;
+				} else {
+					qPrint(name + ": Previous improvement: " + (performanceVals.get(performanceVals.size() - 2)));
+					qPrintNN(name + ": This set is ");
+					if (performanceVals.getLast() > performanceVals.get(performanceVals.size() - 2)) {
+						keys = deepClone(masterKeys.getLast());
+						qPrint("good, let's stick to it.");
+						keyIndex = masterKeys.indexOf(keys);
+					} else {
+						keys = deepClone(masterKeys.get(masterKeys.size() - 2));
+						qPrint("bad, let's go back...");
+						keyIndex = masterKeys.indexOf(keys);
+					}
+					nextStage = false;
+				}
+
+				lastWinnings = totalWinnings;
+
+				qPrint(name + ": this set has length " + keys.size());
+
+
+				for (LinkedList<int[]> i : masterKeys)
+					qPrint(i.size());
+				
+				qPrint("");
 			}
 
 			@Override
@@ -253,11 +318,8 @@ public class PokerrMain {
 					qPrint(name + ": Flushing systems...");
 
 					//TODO: have a competitive phase based approach for a keys list
-					if (iterations > 1 && iterations % 1000 == 0 && iterations2 < 2	&& false) {
-						if (totalWinnings < iterations) {
-							qPrint(name + ": This isn't working...");
-							keys = new LinkedList<int[]>();
-						}
+					if (iterations > 1 && iterations % ASSESS_INTERVAL == 0 && iterations2 == 1) {
+						assessPerformance();
 					}
 
 					if (keys.size() != 0 && keys.getLast()[outcomeIndex] == 0) {
@@ -297,7 +359,7 @@ public class PokerrMain {
 							cCount++;
 						}
 					}
-					
+
 					qPrint("");
 				}
 
@@ -326,6 +388,8 @@ public class PokerrMain {
 								0, // outcome
 								1, // count
 				};
+
+				if (verboseDebug) qPrint("currentKey: " + Arrays.toString(currentKey));
 
 				if (keys.size() != 0 && currentKey[3] == keys.getLast()[3] && currentKey[outcomeIndex] == keys.getLast()[outcomeIndex]) {
 					qPrint(name + ": re-evaluating " + Arrays.toString(keys.getLast()));
@@ -361,49 +425,49 @@ public class PokerrMain {
 							weight = Math.pow((i[0] - currentKey[0]) * 35,4)
 									+ Math.pow(i[1] - currentKey[1], 4)
 									+ Math.pow(i[2] - currentKey[2], 4);
-							
+
 							if (verboseDebug) qPrint("Initial Sum: " + weight);
-							
+
 							weight *= .000002;
-							
+
 							if (verboseDebug) qPrint("*= .000002: " + weight);
-							
+
 							if (weight < 1)
 								weight = 1;
-							
+
 							if (verboseDebug) qPrint("If < 1, =1: " + weight);
-							
+
 							if (Arrays.equals(Arrays.copyOf(i, returnIndex), Arrays.copyOf(currentKey, returnIndex))) {
 								weight *= .75;
 								count++;
 							} // if
-							
+
 							if (verboseDebug) qPrint("If exact same: " + weight);
 
 							weight *= Math.pow(1.0 - ((double)i[returnIndex] / ((double)players.size() * (double)STARTING_BANK)),2);
-							
+
 							if (verboseDebug) qPrint("Return Weighting: " + weight);
-							
+
 							if (i[decisionIndex]*i[outcomeIndex] == 1 && getBet() <= BB)
 								//&& ((double)getBet()/(double)bank) <= 1.0)
 								weight *= (((double)getBet()/(double)bank)/2.0) + 0.5;
 
 							if (verboseDebug) qPrint("If low bet, call weight: " + weight);
-							
+
 							if (gameStage > 0 
 									&& (getBet() >= bank || getBet() > 4*BB) 
 									&& i[decisionIndex]*i[outcomeIndex] == 1
 									&& powerDifference(i[1], i[2]) < 1)
 								weight *= 2 + ((double)getBet() / (double)bank);
-							
+
 							if (verboseDebug) qPrint("If big bet post flop&power dif<1, weigh against call: " + weight);
-							
+
 							if (gameStage > 0 
 									&& (getBet() >= bank || getBet() > 4*BB) 
 									&& i[decisionIndex]*i[outcomeIndex] == 1
 									&& powerDifference(i[1], i[2]) < 2)
 								weight *= 2 + ((double)getBet() / (double)bank);
-							
+
 							if (verboseDebug) qPrint("If big bet post flop&power dif<2, weigh against call: " + weight);
 
 							weight = 1 / weight;
@@ -754,6 +818,8 @@ public class PokerrMain {
 					qPrint("====" + iterations + "." + iterations2  + "====");
 
 				printGlobalString();
+
+				if (endEarly) k = ROUNDS;
 			} // for
 		} // for
 
@@ -1235,6 +1301,13 @@ public class PokerrMain {
 			List<PokerrPlayer> y = Arrays.asList(x);
 			Collections.reverse(y);
 			x = y.toArray(new PokerrPlayer[0]);
+
+
+			if (STOP_WHEN_LAST_PLAYER_WINS 
+					&& iterations > 10
+					&& x[0] == players.getLast()) endEarly = true;
+
+
 			for (PokerrPlayer p : x) {
 				qPrint(p.name + "(" + players.indexOf(p) + ")" + " winnings: " + p.totalWinnings
 						+ " (" + (p.totalWinnings / iterations) + ")");
