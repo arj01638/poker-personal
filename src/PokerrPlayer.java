@@ -1,4 +1,5 @@
 import java.util.Arrays;
+import java.util.LinkedList;
 
 public abstract class PokerrPlayer {
 
@@ -13,10 +14,24 @@ public abstract class PokerrPlayer {
 	public String name = "";
 	public int frontMoney = 0;
 	public PokerrMain parent;
-
+	public LinkedList<Double> winningHistory;
+	
 	PokerrPlayer(PokerrMain parent) {
 		this.parent = parent;
 		bank = STARTING_BANK;
+		winningHistory = new LinkedList<>();
+	}
+
+	public double winningsSlope() {
+		double sum = 0;
+		if (winningHistory.size() > 5) {
+			for (int i = 0; i < 5; i++) {
+				int j = (winningHistory.size() - 1) - i;
+				sum += winningHistory.get(j) - winningHistory.get(j - 1);
+			}
+			sum /= 5;
+		}
+		return sum;
 	}
 
 	public double getTotalWinnings() {
@@ -225,7 +240,7 @@ public abstract class PokerrPlayer {
 		}
 		return bet;
 	}
-	
+
 	public int getPot() {
 		int pot =0;
 		for (Pot i : parent.pots) {

@@ -178,7 +178,7 @@ public class PokerrMain {
 			//will switch on debug & verbose debug at this specified iteration
 			final int START_DEBUG_ITERATION = Integer.MAX_VALUE; //ROUNDS - 5;
 			//how many iterations between assess phases. "rounds" are 2x this number.
-			final int ASSESS_INTERVAL = 100;
+			final int ASSESS_INTERVAL = 500;
 
 			// playerAmt, hand strength, board strength, gameStage, count, return, decision, outcome			
 			LinkedList<int[]> keys = new LinkedList<int[]>();
@@ -210,7 +210,7 @@ public class PokerrMain {
 
 			LinkedList<int[]> getKeys() {
 				LinkedList<int[]> toReturn = new LinkedList<int[]>();
-				if (keys.size() != 0) {
+				if (!keys.isEmpty()) {
 					for (int i = 0; i < activeKeys; i++) {	
 						toReturn.add(keys.get( (keys.size() - 1) - i));
 					}
@@ -256,13 +256,14 @@ public class PokerrMain {
 				for (T i : x) y.add(i);
 				return y;
 			}
-			
+
 			void assessPerformance() {
 				qPrint("");
 
-				for (LinkedList<int[]> i : masterKeys)
-					qPrint(i.size());
-				
+				if (debug)
+					for (LinkedList<int[]> i : masterKeys)
+						qPrint(i.size());
+
 				qPrint(name + ": Assessing performance...");
 				masterKeys.add(deepClone(keys));
 				performanceVals.add(totalWinnings - lastWinnings);
@@ -295,10 +296,10 @@ public class PokerrMain {
 
 				qPrint(name + ": this set has length " + keys.size());
 
+				if (debug)
+					for (LinkedList<int[]> i : masterKeys)
+						qPrint(i.size());
 
-				for (LinkedList<int[]> i : masterKeys)
-					qPrint(i.size());
-				
 				qPrint("");
 			}
 
@@ -317,12 +318,12 @@ public class PokerrMain {
 				if (gameStage == 0 && startIteration != iterations2) {
 					qPrint(name + ": Flushing systems...");
 
-					//TODO: have a competitive phase based approach for a keys list
 					if (iterations > 1 && iterations % ASSESS_INTERVAL == 0 && iterations2 == 1) {
+						for (int i = 0; i < 100; i++) consolidate();
 						assessPerformance();
 					}
 
-					if (keys.size() != 0 && keys.getLast()[outcomeIndex] == 0) {
+					if (!keys.isEmpty() && keys.getLast()[outcomeIndex] == 0) {
 						if (keys.getLast()[decisionIndex] == -1) {
 							qPrint(name + ": Undecided keys are a loss.");
 							if (evaluation < -0.9) {
@@ -420,7 +421,14 @@ public class PokerrMain {
 						for (int j = 0; j < i[countIndex]; j++) {
 							if (i[3] != currentKey[3] 
 									|| Math.abs(i[0] - currentKey[0]) > 1
-									|| i[4] != currentKey[4]) continue;
+									)//|| i[4] != currentKey[4]) 
+								continue;
+							if (!(i[0] == currentKey[0]
+									|| i[1] == currentKey[1]
+											|| i[2] == currentKey[2]
+													|| i[3] == currentKey[3]
+															|| i[4] == currentKey[4]))
+								continue;
 							if (verboseDebug) qPrint(Arrays.toString(i));
 							weight = Math.pow((i[0] - currentKey[0]) * 35,4)
 									+ Math.pow(i[1] - currentKey[1], 4)
@@ -437,7 +445,7 @@ public class PokerrMain {
 
 							if (verboseDebug) qPrint("If < 1, =1: " + weight);
 
-							if (Arrays.equals(Arrays.copyOf(i, returnIndex), Arrays.copyOf(currentKey, returnIndex))) {
+							if (Arrays.equals(Arrays.copyOf(i, returnIndex-1), Arrays.copyOf(currentKey, returnIndex-1))) {
 								weight *= .75;
 								count++;
 							} // if
@@ -469,6 +477,9 @@ public class PokerrMain {
 								weight *= 2 + ((double)getBet() / (double)bank);
 
 							if (verboseDebug) qPrint("If big bet post flop&power dif<2, weigh against call: " + weight);
+
+							if (i[4] != currentKey[4]) weight *= 5;
+							if (verboseDebug) qPrint("If player hash != current: " + weight);							
 
 							weight = 1 / weight;
 							if (verboseDebug) qPrint("inverse: " + weight);
@@ -649,7 +660,8 @@ public class PokerrMain {
 			if (true)//p.bank != 0)
 				string += p.bank;
 			string += ",";
-			string += p.totalWinnings+ ",";
+			string += p.totalWinnings + ",";
+			string += p.winningsSlope() + ",";
 			//if (gameStage == 4 && p.holeCards[0] != null) {
 			//	string += p.strength(p.bestHand(board, true))[0] + ",";
 			//} else { string += ","; }
@@ -674,7 +686,7 @@ public class PokerrMain {
 			for (PokerrPlayer p : players) {
 				header += p.name + "_bank,";
 				header += p.name + "_winnings,";
-				//header += p.name + "_strength,";
+				header += p.name + "_slope,";
 			}
 			header += "playerSize";
 			FileWriter fw = new FileWriter("pokercsv.csv", true);
@@ -1309,6 +1321,7 @@ public class PokerrMain {
 
 
 			for (PokerrPlayer p : x) {
+				p.winningHistory.add(p.totalWinnings);
 				qPrint(p.name + "(" + players.indexOf(p) + ")" + " winnings: " + p.totalWinnings
 						+ " (" + (p.totalWinnings / iterations) + ")");
 			}
