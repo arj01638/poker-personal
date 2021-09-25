@@ -105,7 +105,7 @@ public class PokerrMain {
 		 * Goes all-in if it has anything better than a high card.
 		 * Folds otherwise (except pre-flop).
 		 */
-		addPlayer(true,"Alli_MK1", new PokerrPlayer(this) {
+		addPlayer(false,"Alli_MK1", new PokerrPlayer(this) {
 			@Override
 			public int evaluate() {
 				int betfacing = getBet();
@@ -126,7 +126,7 @@ public class PokerrMain {
 		 * Goes all-in if it has anything better than a pair.
 		 * Folds otherwise (except pre-flop).
 		 */
-		addPlayer(true,"Alli_MK2", new PokerrPlayer(this) {
+		addPlayer(false,"Alli_MK2", new PokerrPlayer(this) {
 			@Override
 			public int evaluate() {
 				int betfacing = getBet();
@@ -147,7 +147,7 @@ public class PokerrMain {
 		 * Goes all-in if it has anything better than a high card that's not on the board.
 		 * Folds otherwise (except pre-flop).
 		 */
-		addPlayer(true,"Alli_MK3", new PokerrPlayer(this) {
+		addPlayer(false,"Alli_MK3", new PokerrPlayer(this) {
 			@Override
 			public int evaluate() {
 				int betfacing = getBet();
@@ -167,7 +167,7 @@ public class PokerrMain {
 		/*
 		 * ???
 		 */
-		addPlayer(true,"Add'y", new PokerrPlayer(this) {
+		addPlayer(false,"Add'y", new PokerrPlayer(this) {
 			//params
 			//i will call if i haven't seen this scenario exactly countThreshold or more times.
 			final int COUNT_THRESHOLD = 1;
@@ -600,7 +600,9 @@ public class PokerrMain {
 					}
 				}
 			}
-		});		
+		});
+		
+		addPlayer(true,"Tru-Add'y", new TrueAddy(this));
 	}
 
 	void qPrint(String x) {
