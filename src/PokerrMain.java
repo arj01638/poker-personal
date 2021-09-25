@@ -178,7 +178,7 @@ public class PokerrMain {
 			//will switch on debug & verbose debug at this specified iteration
 			final int START_DEBUG_ITERATION = Integer.MAX_VALUE; //ROUNDS - 5;
 			//how many iterations between assess phases. "rounds" are 2x this number.
-			final int ASSESS_INTERVAL = 500;
+			final int ASSESS_INTERVAL = 350;
 
 			// playerAmt, hand strength, board strength, gameStage, count, return, decision, outcome			
 			LinkedList<int[]> keys = new LinkedList<int[]>();
@@ -319,7 +319,7 @@ public class PokerrMain {
 					qPrint(name + ": Flushing systems...");
 
 					if (iterations > 1 && iterations % ASSESS_INTERVAL == 0 && iterations2 == 1) {
-						for (int i = 0; i < 100; i++) consolidate();
+						for (int i = 0; i < 200; i++) consolidate();
 						assessPerformance();
 					}
 
@@ -589,7 +589,7 @@ public class PokerrMain {
 					if (win) { //good call
 						updateKeyOutcomes(1,0);
 					} else if (keys.getLast()[decisionIndex] == -1 
-							&& decideWinner(bestHand(board,true),winningHand)  == -1) { //good fold
+							&& decideWinner(bestHand(board,true),winningHand) == -1) { //good fold
 						updateKeyOutcomes(1,0);
 					} else {
 						updateKeyOutcomes(-1,0);
@@ -599,9 +599,8 @@ public class PokerrMain {
 							i[returnIndex] = potAmt;
 					}
 				}
-
 			}
-		});
+		});		
 	}
 
 	void qPrint(String x) {
