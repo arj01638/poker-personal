@@ -45,8 +45,9 @@ public class TrueAddy extends PokerrPlayer {
 				getBet(), 
 				getPlayerHash(parent.committedPlayers()),
 				getGameStage(parent.board),
-				0,//returnAmt
-				1 //decision
+				0, //returnAmt
+				1, //decision
+				0  //bet
 				);
 		
 		if (!keys.isEmpty() && currentKey.gameStage == keys.getLast().gameStage && !keys.getLast().decided) {
@@ -58,60 +59,85 @@ public class TrueAddy extends PokerrPlayer {
 
 		double decision = 0;
 		double totalWeight = 0;
+		double avgBet = 0;
 		int count = 0;
 		for (Key i : keys) {
 			if (activeKeys.contains(i)) continue;
-			if (vDEBUG) parent.qPrint("" + i);
+			if (vDEBUG) System.out.println("" + i);
 			
 			double weight = 0;
-			weight += (100.0/12.0)*Math.abs(currentKey.holeCards[0].compareTo(i.holeCards[0]));
-			weight += (100.0/3.0)*Math.abs(currentKey.holeCards[0].compareToS(i.holeCards[0]));
-			weight += (100.0/12.0)*Math.abs(currentKey.holeCards[1].compareTo(i.holeCards[1]));
-			weight += (100.0/3.0)*Math.abs(currentKey.holeCards[1].compareToS(i.holeCards[1]));
+			weight += Math.pow((100.0/12.0)*Math.abs(currentKey.holeCards[0].compareTo(i.holeCards[0])),2);
+			weight += Math.pow((100.0/3.0)*Math.abs(currentKey.holeCards[0].compareToS(i.holeCards[0])),2);
+			weight += Math.pow((100.0/12.0)*Math.abs(currentKey.holeCards[1].compareTo(i.holeCards[1])),2);
+			weight += Math.pow((100.0/3.0)*Math.abs(currentKey.holeCards[1].compareToS(i.holeCards[1])),2);
 			for (int j = 0; j < (gameStage == 0 ? 0 : 2 + gameStage); j++) {
 				if (currentKey.board.length < 2 + gameStage || i.board.length < 2 + gameStage) continue;
-				weight += (100.0/12.0)*Math.abs(currentKey.board[j].compareTo(i.board[j]));
-				weight += (100.0/3.0)*Math.abs(currentKey.board[j].compareToS(i.board[j]));
+				weight += Math.pow((100.0/12.0)*Math.abs(currentKey.board[j].compareTo(i.board[j])),2);
+				weight += Math.pow((100.0/3.0)*Math.abs(currentKey.board[j].compareToS(i.board[j])),2);
 			}
-			weight += (100.0/(parent.players.size()*STARTING_BANK))
-					*Math.abs(currentKey.betFacing - i.betFacing);
-			weight += (100.0/parent.players.size())
-					*Math.abs(playerHashDistance(currentKey.playerHash, i.playerHash));
+			weight += Math.pow((100.0/(parent.players.size()*STARTING_BANK))
+					*Math.abs(currentKey.betFacing - i.betFacing),2);
+			weight += Math.pow((100.0/parent.players.size())
+					*Math.abs(playerHashDistance(currentKey.playerHash, i.playerHash)),2);
+			if (vDEBUG) System.out.println("Weight: " + weight);
 			
-			weight += (100.0/4.0)*currentKey.gameStage - i.gameStage;
+			weight += Math.pow((100.0/4.0)*(currentKey.gameStage - i.gameStage),2);
+			if (vDEBUG) System.out.println("Weight: " + weight);
 			
-			if (weight == 0) count++;
+			if (weight == 0.0) count++;
+			if (weight < 1 && weight >= 0) weight++;
+			if (weight > -1 && weight < 0) weight--;
 			
 			weight = 1 / weight;
+			if (vDEBUG) System.out.println("Weight: " + weight);
 			
 			weight *= (i.returnAmt >= 0 ? 1 : -1) + i.returnAmt/(parent.players.size()*STARTING_BANK);
-			
-			if (vDEBUG) parent.qPrint("Weight: " + weight);
+			if (vDEBUG) System.out.println("Weight: " + weight);
 			
 			totalWeight += Math.abs(weight);
 			decision += i.decision * weight;
+			avgBet += i.bet * weight;
 			
-			if (vDEBUG) parent.qPrint("Decision: " + (decision / totalWeight));
+			if (vDEBUG) System.out.println("Decision: " + (decision / totalWeight));
+
+			if (Double.isNaN(decision / totalWeight)) {
+				throw new RuntimeException("decision = NaN");
+			}
 		}
 		decision /= totalWeight;
+		avgBet /= totalWeight;
 
 		if (keys.isEmpty() || totalWeight == 0) decision = 1;
 		
 		if (count == 0) {
 			parent.qPrint(name + ": Haven't seen this before.");
 			decision += 0.5;
+			avgBet = (avgBet + (Math.random())) / 2;
 		}
-		if (decision == 0.0/0.0) {
-			throw new RuntimeException("decision == 0/0");
+		if (Double.isNaN(decision)) {
+			throw new RuntimeException("decision == NaN");
 		}
 		parent.qPrint(name + ": I evaluate " + decision);
 
-		int toReturn = decision >= 0 ? 0 : -1;
-		currentKey.decision = toReturn == 0 ? 1 : -1;
+		int intDecision = decision >= 0 ? 0 : -1;
+		currentKey.decision = intDecision == 0 ? 1 : -1;
+		currentKey.bet = (int) avgBet;
 
 		keys.add(currentKey);
 		activeKeys.add(currentKey);
 
+		int toReturn = intDecision;
+		if (toReturn < 0) return -1;
+		toReturn = (int) (currentKey.bet * bank);
+		
+		if (toReturn + getBet() < BB)
+			toReturn = BB - getBet();
+		if (toReturn + getBet() < getBet() * 2)
+			toReturn = 0;
+		if (toReturn + getBet() > bank) {
+			toReturn = bank - (toReturn + getBet());
+		}
+		
 		return toReturn;
 	}
 
@@ -156,10 +182,11 @@ class Key {
 	int returnAmt;
 	int decision;
 	boolean decided;
+	double bet;
 
 	PokerrPlayer parent;
 
-	Key(PokerrPlayer parent, Card[] holeCards3, Card[] board3, int betFacing, int playerHash, int gameStage, int returnAmt, int decision) {
+	Key(PokerrPlayer parent, Card[] holeCards3, Card[] board3, int betFacing, int playerHash, int gameStage, int returnAmt, int decision, double bet) {
 		parent.parent.qPrint(Arrays.toString(holeCards3));
 		parent.parent.qPrint(Arrays.toString(board3));
 		
@@ -178,6 +205,7 @@ class Key {
 		this.gameStage = gameStage;
 		this.returnAmt = returnAmt;
 		this.decision = decision;
+		this.bet = bet;
 		decided = false;
 
 		this.parent = parent;
@@ -194,6 +222,7 @@ class Key {
 		toReturn.append("ReturnAmt: " + returnAmt + "\n");
 		toReturn.append("Decision: " + decision + "\n");
 		toReturn.append("Decided: " + decided + "\n");
+		toReturn.append("Bet: " + bet + "\n");
 		return toReturn.toString();
 	}
 
