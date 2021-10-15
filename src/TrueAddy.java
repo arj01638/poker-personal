@@ -8,7 +8,7 @@ import java.util.List;
 public class TrueAddy extends PokerrPlayer {
 
 	boolean DEBUG = true;
-	boolean vDEBUG = false;
+	boolean vDEBUG = true;
 	int TURN_ON_DEBUG_ROUND = -1;
 
 	TrueAddy(PokerrMain parent) {
@@ -35,6 +35,7 @@ public class TrueAddy extends PokerrPlayer {
 
 		if (gameStage == 0) {
 			if (!keys.isEmpty() && !keys.getLast().decided) {
+				parent.qPrint(name + "Last keys:");
 				for (Key i : activeKeys) {
 					i.returnAmt = bank - startBank;
 					i.decided = true;
@@ -73,7 +74,8 @@ public class TrueAddy extends PokerrPlayer {
 		int count = 0;
 		for (Key i : keys) {
 			if (activeKeys.contains(i)) continue;
-			//if (i.gameStage != currentKey.gameStage) continue;
+			if (Math.abs(i.gameStage - currentKey.gameStage) > 1) continue;
+			if (Math.abs(playerHashDistance(currentKey.playerHash, i.playerHash)) > 1) continue;
 			if (!i.equals(currentKey)) continue;
 			if (vDEBUG) parent.qPrint("" + i);
 
@@ -103,17 +105,18 @@ public class TrueAddy extends PokerrPlayer {
 					*Math.abs(playerHashDistance(currentKey.playerHash, i.playerHash)),2);
 
 			weight += Math.pow((100.0/4.0)*(currentKey.gameStage - i.gameStage),2);
-			if (vDEBUG) parent.qPrint("Weight: " + weight);
+			if (vDEBUG) parent.qPrint("After other key vals: " + weight);
 
 			if (currentKey.equals(i)) count++;
+			if (vDEBUG) parent.qPrint("Seen this before.");
 			if (weight < 1 && weight >= 0) weight++;
 			if (weight > -1 && weight < 0) weight--;
-
+			if (vDEBUG) parent.qPrint("Readjusting...: " + weight);
 			weight = 1 / weight;
-			if (vDEBUG) parent.qPrint("Weight: " + weight);
+			if (vDEBUG) parent.qPrint("Inverting...: " + weight);
 
 			weight *= (i.returnAmt >= 0 ? 1 : -1) + i.returnAmt/(parent.players.size()*STARTING_BANK);
-			if (vDEBUG) parent.qPrint("Weight: " + weight);
+			if (vDEBUG) parent.qPrint("Compensating for returnAmt: " + weight);
 
 			totalWeight += Math.abs(weight);
 			decision += i.decision * weight;
@@ -124,6 +127,8 @@ public class TrueAddy extends PokerrPlayer {
 			if (Double.isNaN(decision / totalWeight)) {
 				throw new RuntimeException("decision = NaN");
 			}
+			
+			if (vDEBUG) parent.qPrint("\n\n");
 		}
 		decision /= totalWeight;
 		avgBet /= totalWeight;
@@ -274,7 +279,8 @@ class Key {
 
 	boolean equals(Key x) {
 		boolean equalTo = false;
-		if (cardDifs(x) < 5 &&
+		int threshold = this.gameStage == 0 ? 3 : 8;
+		if (cardDifs(x) < threshold &&
 				Math.abs(this.betFacing - x.betFacing) < parent.BB &&
 				this.playerHash.equals(x.playerHash) &&
 				this.gameStage == x.gameStage) {
@@ -300,16 +306,16 @@ class Key {
 		int difs = 0;
 		for (Card x : this.holeCards) {
 			for (Card y : other.holeCards) {
-				difs += x.compareTo(y);
-				difs += x.compareToS(y);
+				difs += Math.abs(x.compareTo(y));
+				difs += Math.abs(x.compareToS(y));
 			}
 		}
 		for (Card x : this.board) {
 			if (x == null) continue;
 			for (Card y : other.board) {
 				if (y == null) continue;
-				difs += x.compareTo(y);
-				difs += x.compareToS(y);
+				difs += Math.abs(x.compareTo(y));
+				difs += Math.abs(x.compareToS(y));
 			}
 		}
 		return difs;
