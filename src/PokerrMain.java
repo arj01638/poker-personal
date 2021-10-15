@@ -12,7 +12,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public class PokerrMain {
 
 
-	final int ROUNDS = 1000;
+	final int ROUNDS = 100;
 	boolean PRINT = true;
 	boolean SPEED = false;
 	final int BB = 500;

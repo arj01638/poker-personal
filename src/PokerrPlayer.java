@@ -25,9 +25,8 @@ public abstract class PokerrPlayer {
 	public double winningsSlope() {
 		double sum = 0;
 		if (winningHistory.size() > 50) {
-			for (int i = 0; i < 50; i++) {
-				int j = (winningHistory.size() - 1) - i;
-				sum += winningHistory.get(j) - winningHistory.get(j - 1);
+			for (int i = winningHistory.size() - 1; i > winningHistory.size() - 51; i--) {
+				sum += winningHistory.get(i) - winningHistory.get(i - 1);
 			}
 			sum /= 50;
 		}

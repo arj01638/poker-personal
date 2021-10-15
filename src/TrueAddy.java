@@ -1,5 +1,6 @@
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -8,7 +9,7 @@ import java.util.List;
 public class TrueAddy extends PokerrPlayer {
 
 	boolean DEBUG = true;
-	boolean vDEBUG = true;
+	boolean vDEBUG = false;
 	int TURN_ON_DEBUG_ROUND = -1;
 
 	TrueAddy(PokerrMain parent) {
@@ -35,7 +36,7 @@ public class TrueAddy extends PokerrPlayer {
 
 		if (gameStage == 0) {
 			if (!keys.isEmpty() && !keys.getLast().decided) {
-				parent.qPrint(name + "Last keys:");
+				parent.qPrint(name + ": Last keys:");
 				for (Key i : activeKeys) {
 					i.returnAmt = bank - startBank;
 					i.decided = true;
@@ -76,25 +77,25 @@ public class TrueAddy extends PokerrPlayer {
 			if (activeKeys.contains(i)) continue;
 			if (Math.abs(i.gameStage - currentKey.gameStage) > 1) continue;
 			if (Math.abs(playerHashDistance(currentKey.playerHash, i.playerHash)) > 1) continue;
-			if (!i.equals(currentKey)) continue;
+			//if (!i.equals(currentKey)) continue;
 			if (vDEBUG) parent.qPrint("" + i);
 
 			double weight = 0.0;
 
-			for (Card x : currentKey.holeCards) {
-				for (Card y : i.holeCards) {
-					weight += Math.pow((100.0/12.0)*Math.abs(x.compareTo(y)),2);
-					weight += Math.pow((100.0/3.0)*Math.abs(x.compareToS(y)),2);
-				}
+			for (int j = 0; j < currentKey.holeCards.size(); j++) {
+				Card x = currentKey.holeCards.get(j);
+				Card y = i.holeCards.get(j);	
+				weight += Math.pow((100.0/12.0)*Math.abs(x.compareTo(y)),2);
+				weight += Math.pow((100.0/12.0)*Math.abs(x.compareToS(y)),2);
 			}
-			for (Card x : currentKey.board) {
-				if (x == null) continue;
-				for (Card y : i.board) {
-					if (y == null) continue;
-					weight += Math.pow((100.0/12.0)*Math.abs(x.compareTo(y)),2);
-					weight += Math.pow((100.0/3.0)*Math.abs(x.compareToS(y)),2);
-				}
+
+			for (int j = 0; j < (currentKey.board.size() > i.board.size() ? i.board.size() : currentKey.board.size()); j++) {
+				Card x = currentKey.board.get(j);
+				Card y = i.board.get(j);	
+				weight += Math.pow((100.0/12.0)*Math.abs(x.compareTo(y)),2);
+				weight += Math.pow((100.0/12.0)*Math.abs(x.compareToS(y)),2);
 			}
+
 			if (vDEBUG) parent.qPrint("Initial card weight: " + weight);
 
 
@@ -115,11 +116,11 @@ public class TrueAddy extends PokerrPlayer {
 			weight = 1 / weight;
 			if (vDEBUG) parent.qPrint("Inverting...: " + weight);
 
-			weight *= (i.returnAmt >= 0 ? 1 : -1) + i.returnAmt/(parent.players.size()*STARTING_BANK);
+			weight *= (i.returnAmt >= 0 ? 1 : -1) + Math.pow(((double)i.returnAmt/(double)(parent.players.size()*STARTING_BANK)),2);
 			if (vDEBUG) parent.qPrint("Compensating for returnAmt: " + weight);
 
 			totalWeight += Math.abs(weight);
-			decision += i.decision * weight;
+			decision += i.returnAmt != 0 ? i.decision * weight : 0;
 			avgBet += i.bet * weight;
 
 			if (vDEBUG) parent.qPrint("Decision: " + (decision / totalWeight));
@@ -127,7 +128,7 @@ public class TrueAddy extends PokerrPlayer {
 			if (Double.isNaN(decision / totalWeight)) {
 				throw new RuntimeException("decision = NaN");
 			}
-			
+
 			if (vDEBUG) parent.qPrint("\n\n");
 		}
 		decision /= totalWeight;
@@ -157,7 +158,7 @@ public class TrueAddy extends PokerrPlayer {
 		activeKeys.add(currentKey);
 
 		//consolidate();
-		
+
 		int toReturn = intDecision;
 		if (toReturn < 0) return -1;
 		toReturn = (int) (currentKey.bet * bank);
@@ -173,7 +174,7 @@ public class TrueAddy extends PokerrPlayer {
 
 		return toReturn;
 	}
-	
+
 	void consolidate() {
 		int index = (int) Math.random() * (keys.size() - 1);
 		Key j = keys.get(index);
@@ -224,8 +225,8 @@ public class TrueAddy extends PokerrPlayer {
 }
 
 class Key {
-	HashSet<Card> holeCards;
-	HashSet<Card> board;
+	ArrayList<Card> holeCards;
+	ArrayList<Card> board;
 	int betFacing;
 	HashSet<PokerrPlayer> playerHash;
 	int gameStage;
@@ -245,9 +246,12 @@ class Key {
 			if (i != null) holeCardList.add(i);
 		for (Card i : board3)
 			if (i != null) boardList.add(i);
-		
-		this.holeCards = new HashSet<>(holeCardList);
-		this.board = new HashSet<>(boardList);
+
+		Collections.sort(holeCardList);
+		Collections.sort(boardList);
+
+		this.holeCards = holeCardList;
+		this.board = boardList;
 
 		this.betFacing = betFacing;
 		this.playerHash = playerHash;
@@ -258,7 +262,7 @@ class Key {
 		decided = false;
 
 		this.parent = parent;
-		
+
 		count = 0;
 	}
 
@@ -279,8 +283,8 @@ class Key {
 
 	boolean equals(Key x) {
 		boolean equalTo = false;
-		int threshold = this.gameStage == 0 ? 3 : 8;
-		if (cardDifs(x) < threshold &&
+		int threshold = this.gameStage == 0 ? 1 : 2;
+		if (cardDifs(x) <= threshold &&
 				Math.abs(this.betFacing - x.betFacing) < parent.BB &&
 				this.playerHash.equals(x.playerHash) &&
 				this.gameStage == x.gameStage) {
@@ -301,23 +305,23 @@ class Key {
 		}
 		return equalTo;
 	}
-	
-	int cardDifs(Key other) {
-		int difs = 0;
-		for (Card x : this.holeCards) {
-			for (Card y : other.holeCards) {
-				difs += Math.abs(x.compareTo(y));
-				difs += Math.abs(x.compareToS(y));
-			}
+
+	double cardDifs(Key other) {
+		double difs = 0;
+		for (int j = 0; j < this.holeCards.size(); j++) {
+			Card x = this.holeCards.get(j);
+			Card y = other.holeCards.get(j);	
+			difs += Math.abs(x.compareTo(y));
+			difs += 1/12*Math.abs(x.compareToS(y));
 		}
-		for (Card x : this.board) {
-			if (x == null) continue;
-			for (Card y : other.board) {
-				if (y == null) continue;
-				difs += Math.abs(x.compareTo(y));
-				difs += Math.abs(x.compareToS(y));
-			}
+		for (int j = 0; j < (this.board.size() > other.board.size() ? other.board.size() : this.board.size()); j++) {
+			Card x = this.board.get(j);
+			Card y = other.board.get(j);
+			difs += Math.abs(x.compareTo(y));
+			difs += 1/12*Math.abs(x.compareToS(y));
+
 		}
+
 		return difs;
 	}
 

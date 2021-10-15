@@ -20,7 +20,8 @@ public class Card implements Comparable<Card> {
 	}
 	
 	public int compareToS(Card o) {
-		return o.suit - this.suit;
+		if (o.suit != this.suit) return 1;
+		return 0;
 	}
 	
 }
