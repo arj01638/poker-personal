@@ -12,7 +12,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public class PokerrMain {
 
 
-	final int ROUNDS = 100;
+	final int ROUNDS = 1500;
 	boolean PRINT = true;
 	boolean SPEED = false;
 	final int BB = 500;
@@ -58,7 +58,7 @@ public class PokerrMain {
 		 * Folds ~1/11 of the time.
 		 * Else, makes random move.
 		 */
-		addPlayer(true, "Dornk", new PokerrPlayer(this) {
+		addPlayer(false, "Dornk", new PokerrPlayer(this) {
 			@Override
 			int evaluate() {
 				int decision = (BB/5)*ThreadLocalRandom.current().nextInt(-1, 10);
@@ -99,6 +99,32 @@ public class PokerrMain {
 				return evaluation;
 			}
 		}); // AlwaysMinBet
+
+
+		/*
+		 * control
+		 */
+		addPlayer(true,"control", new PokerrPlayer(this) {
+			@Override
+			public int evaluate() {
+				int betfacing = getBet();
+				if (betfacing > bank)
+					return 0;
+				int evaluation;
+				evaluation = (int) (Math.random() * bank);
+				
+				if (evaluation + getBet() < BB)
+					evaluation = BB - getBet();
+				if (evaluation + getBet() < getBet() * 2)
+					evaluation = 0;
+				if (evaluation + getBet() > bank)
+					evaluation = bank - (evaluation + getBet());
+				if (evaluation < 0)
+					evaluation = 0;
+				
+				return evaluation;
+			}
+		}); // control
 
 
 		/*

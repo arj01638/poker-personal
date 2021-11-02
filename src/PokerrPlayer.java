@@ -24,11 +24,12 @@ public abstract class PokerrPlayer {
 
 	public double winningsSlope() {
 		double sum = 0;
-		if (winningHistory.size() > 50) {
-			for (int i = winningHistory.size() - 1; i > winningHistory.size() - 51; i--) {
+		int lookback = 150	;
+		if (winningHistory.size() > lookback) {
+			for (int i = winningHistory.size() - 1; i > winningHistory.size() - (lookback + 1); i--) {
 				sum += winningHistory.get(i) - winningHistory.get(i - 1);
 			}
-			sum /= 50;
+			sum /= lookback;
 		}
 		return sum;
 	}

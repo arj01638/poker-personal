@@ -6,7 +6,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
-public class TrueAddy extends PokerrPlayer {
+public class TrueAddy2 extends PokerrPlayer {
 
 	boolean DEBUG = true;
 	boolean vDEBUG = false;
@@ -15,7 +15,7 @@ public class TrueAddy extends PokerrPlayer {
 	int EXP = 3;
 	int LEARNING_KEYS = 50000;
 
-	TrueAddy(PokerrMain parent) {
+	TrueAddy2(PokerrMain parent) {
 		super(parent);
 	}
 
