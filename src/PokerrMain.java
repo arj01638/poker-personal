@@ -57,10 +57,12 @@ public class PokerrMain {
 		/*
 		 * Folds ~1/11 of the time.
 		 * Else, makes random move.
+		 * If beyond the 50th hand, just call, for god's sake.
 		 */
-		addPlayer(false, "Dornk", new PokerrPlayer(this) {
+		addPlayer(true, "Dornk", new PokerrPlayer(this) {
 			@Override
 			int evaluate() {
+				if (parent.iterations2 > 50) return 0;
 				int decision = (BB/5)*ThreadLocalRandom.current().nextInt(-1, 10);
 				int betfacing = getBet();
 				if (betfacing >= bank)
@@ -102,9 +104,11 @@ public class PokerrMain {
 
 
 		/*
-		 * control
+		 * Control, bets a random proportion of its bank.
+		 * If can't raise that much, just call.
+		 * For testing purposes.
 		 */
-		addPlayer(true,"control", new PokerrPlayer(this) {
+		addPlayer(false,"control", new PokerrPlayer(this) {
 			@Override
 			public int evaluate() {
 				int betfacing = getBet();
@@ -191,7 +195,7 @@ public class PokerrMain {
 		});
 
 		/*
-		 * ???
+		 * Pseudo machine learning wit LOTS of hardcoded help.
 		 */
 		addPlayer(false,"Add'y", new PokerrPlayer(this) {
 			//params
@@ -628,7 +632,9 @@ public class PokerrMain {
 			}
 		});
 		
-		addPlayer(true,"Tru-Add'y", new TrueAddy(this));
+		addPlayer(false,"Tru-Add'y", new TrueAddy(this));
+		
+		addPlayer(true,"NNPlayer", new NNPlayer(this));
 	}
 
 	void qPrint(String x) {

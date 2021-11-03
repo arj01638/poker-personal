@@ -6,6 +6,18 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
+
+
+
+
+/*
+*
+* DEPRECATED. DO NOT USE.
+*
+*/
+
+
+
 public class TrueAddy extends PokerrPlayer {
 
 	boolean DEBUG = true;
@@ -47,10 +59,10 @@ public class TrueAddy extends PokerrPlayer {
 					i.decided = true;
 					parent.qPrint(i.toString());
 				}
-			}
 
-			activeKeys.clear();
-			startBank = bank;
+				activeKeys.clear();
+				startBank = bank;
+			}
 		}
 
 		parent.qPrint(name + ": Evaluating...");
@@ -216,6 +228,8 @@ public class TrueAddy extends PokerrPlayer {
 				i.decided = true;
 				parent.qPrint(i.toString());
 			}
+			activeKeys.clear();
+			startBank = bank;
 		}
 	}
 
