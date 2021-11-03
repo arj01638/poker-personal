@@ -108,7 +108,7 @@ public class PokerrMain {
 		 * If can't raise that much, just call.
 		 * For testing purposes.
 		 */
-		addPlayer(false,"control", new PokerrPlayer(this) {
+		addPlayer(true,"control", new PokerrPlayer(this) {
 			@Override
 			public int evaluate() {
 				int betfacing = getBet();

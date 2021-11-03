@@ -6,7 +6,7 @@ import java.util.List;
 public class NNPlayer extends PokerrPlayer{
 
 	NeuralNetwork nn;
-	int training_threshold = 1000;
+	int training_threshold = 500;
 	boolean trained = false;
 	
 	
@@ -60,14 +60,14 @@ public class NNPlayer extends PokerrPlayer{
 				trained = true;
 			}
 			else {
-				int toReturn = (int) (Math.random()*STARTING_BANK);
+				int toReturn = (int) STARTING_BANK;//(Math.random()*STARTING_BANK);
 				toReturn = sanitizeBet(toReturn);
 				addKey(toReturn);
 				keys.getLast()[decidedIndex] = 1;
 				parent.qPrint(Arrays.toString(keys.getLast()));
 				List<Double> evaluation = nn.predict(keys.getLast());
 				parent.qPrint(name + ": The above play would probably lead to a net: " + evaluation.toString());
-				toReturn = (int) (Math.round(evaluation.get(0))*(parent.players.size()*STARTING_BANK));
+				toReturn = (int) (Math.round(evaluation.get(0))*(STARTING_BANK));
 				toReturn = sanitizeBet(toReturn);
 				return toReturn;
 			}
@@ -81,7 +81,7 @@ public class NNPlayer extends PokerrPlayer{
 			int index = 1;
 			for (double[]  i : activeKeys) {
 				keyOutcome.remove(keyOutcome.size() - index);
-				keyOutcome.add(keyOutcome.size() - index + 1, new double[]{(bank - startBank)/(parent.players.size()*STARTING_BANK)});// = bank - startBank;
+				keyOutcome.add(keyOutcome.size() - index + 1, new double[]{(((bank - startBank)/(parent.players.size()*STARTING_BANK))/2)+1});// = bank - startBank;
 				i[decidedIndex] = 1;
 				parent.qPrint(Arrays.toString(i));
 				parent.qPrint(Arrays.toString(keyOutcome.get(keyOutcome.size() - index)));
@@ -98,7 +98,7 @@ public class NNPlayer extends PokerrPlayer{
 	}
 
 	void addKey(int decision) {
-		int nullvalue = -1;
+		int nullvalue = 0;
 		double[] key = {
 			(double)holeCards[0].value/14,
 			(double)holeCards[0].suit/4,
@@ -136,6 +136,9 @@ public class NNPlayer extends PokerrPlayer{
 	
 	int sanitizeBet(int tr) {
 		int toReturn = tr;
+		if (getBet() > toReturn) return -1;
+		if (getBet() == toReturn) return 0;
+		toReturn = getBet() - toReturn;
 		if (toReturn + getBet() < BB)
 			toReturn = BB - getBet();
 		if (toReturn + getBet() < getBet() * 2)
