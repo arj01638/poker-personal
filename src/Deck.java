@@ -3,7 +3,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class Deck {
 
-	private LinkedList<Card> mainDeck = new LinkedList<Card>();
+	private LinkedList<Card> mainDeck = new LinkedList<>();
 	Deck() {
 		this.clear();
 	}

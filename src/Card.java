@@ -11,7 +11,7 @@ public class Card implements Comparable<Card> {
 	
 	@Override
 	public String toString() {
-		return Integer.toString(value) + "." + Integer.toString(suit);
+		return value + "." + suit;
 	}
 
 	@Override

@@ -6,17 +6,17 @@ public abstract class PokerrPlayer {
 	final int BB = 500;
 	final int SB = BB / 2;
 	final int STARTING_BANK = 10000;
-	public int bank = 0;
+	public int bank;
 	public Card[] holeCards = new Card[2];
 	public boolean inTheHand = true;
 	public boolean allIn = false;
 	public double totalWinnings = 0;
 	public String name = "";
 	public int frontMoney = 0;
-	public PokerrMain parent;
+	public PokerMain parent;
 	public LinkedList<Double> winningHistory;
 	
-	PokerrPlayer(PokerrMain parent) {
+	PokerrPlayer(PokerMain parent) {
 		this.parent = parent;
 		bank = STARTING_BANK;
 		winningHistory = new LinkedList<>();
@@ -52,7 +52,7 @@ public abstract class PokerrPlayer {
 			int[] CEStrength = new int[] {0,0,0,0};
 			if (ce[0].value == ce[1].value)
 				CEStrength[0] = 1;
-			CEStrength[2] = ce[0].value >= ce[1].value ? ce[0].value : ce[1].value;
+			CEStrength[2] = Math.max(ce[0].value, ce[1].value);
 			return CEStrength;
 		}
 
@@ -62,18 +62,16 @@ public abstract class PokerrPlayer {
 		//pair
 		if (ce[0].value == ce[1].value) {
 			CEStrength[0] = 1;
-			CEStrength[2] = ce[0].value;
 			//two pair
 			if (ce[3] != null && ce[2].value == ce[3].value) {
 				CEStrength[0] = 2;
-				CEStrength[2] = ce[0].value >= ce[2].value ? ce[0].value : ce[2].value;
-				CEStrength[3] = ce[0].value <= ce[2].value ? ce[0].value : ce[2].value;
+				CEStrength[2] = Math.max(ce[0].value, ce[2].value);
+				CEStrength[3] = Math.min(ce[0].value, ce[2].value);
 			}
 
 			//trips
 			if (ce[1].value == ce[2].value) {
 				CEStrength[0] = 3;
-				CEStrength[2] = ce[0].value;
 
 				//full house
 				if (ce[3] != null && ce[4] != null && ce[3].value == ce[4].value) {
@@ -84,7 +82,6 @@ public abstract class PokerrPlayer {
 				//quads
 				if (ce[3] != null && ce[2].value == ce[3].value) {
 					CEStrength[0] = 7;
-					CEStrength[2] = ce[0].value;
 				}
 			}
 		} // if
@@ -94,17 +91,14 @@ public abstract class PokerrPlayer {
 				&&	ce[1].value == ce[2].value + 1
 				&&	ce[2].value == ce[3].value + 1
 				&&	ce[3].value == ce[4].value + 1) {
-			if (CEStrength[0] < 4) {
-				CEStrength[0] = 4;
-				CEStrength[2] = ce[0].value;
-			}
+			CEStrength[0] = 4;
+			CEStrength[2] = ce[0].value;
 			//straight flush
-			if (ce[3] != null && ce[4] != null && ce[0].suit == ce[1].suit 
-					&& ce[1].suit == ce[2].suit 
-					&& ce[2].suit == ce[3].suit 
+			if (ce[3] != null && ce[4] != null && ce[0].suit == ce[1].suit
+					&& ce[1].suit == ce[2].suit
+					&& ce[2].suit == ce[3].suit
 					&& ce[3].suit == ce[4].suit) {
 				CEStrength[0] = 8;
-				CEStrength[2] = ce[0].value;
 				if (ce[0].value == 14) {
 					CEStrength[0] = 9;
 				}
@@ -115,17 +109,14 @@ public abstract class PokerrPlayer {
 				&&	ce[2].value == 3
 				&&	ce[3].value == 2
 				&&	ce[4].value == 14) {
-			if (CEStrength[0] < 4) {
-				CEStrength[0] = 4;
-				CEStrength[2] = ce[0].value;
-			}
+			CEStrength[0] = 4;
+			CEStrength[2] = ce[0].value;
 			//straight wheel flush
 			if (ce[3] != null && ce[4] != null && ce[0].suit == ce[1].suit 
 					&& ce[1].suit == ce[2].suit 
 					&& ce[2].suit == ce[3].suit 
 					&& ce[3].suit == ce[4].suit) {
 				CEStrength[0] = 8;
-				CEStrength[2] = ce[0].value;
 				if (ce[0].value == 14) {
 					CEStrength[0] = 9;
 				}
@@ -148,8 +139,8 @@ public abstract class PokerrPlayer {
 
 	public Card[] bestHand(Card[] board, boolean useHoleCards) {
 		Card[] toReturn = new Card[5];
-		Card[] ce = new Card[5];
-		int[] CEStrength = new int[]{-1,-1};
+		Card[] ce;
+		int[] CEStrength;
 		int[] TRStrength = new int[]{-1,-1};
 		if (board[0] == null) {
 			return Arrays.copyOf(holeCards, 2);
@@ -169,7 +160,7 @@ public abstract class PokerrPlayer {
 				if (board[i] != null)
 					raw[i + (useHoleCards ? 2 : 0)] = board[i];
 			}
-			Permutations<Card> perm = new Permutations<Card>(raw);
+			Permutations<Card> perm = new Permutations<>(raw);
 			//Card[] last = null;
 			while(perm.hasNext()) {
 				Card[] ce2 = perm.next();
@@ -196,13 +187,13 @@ public abstract class PokerrPlayer {
 				if (CEStrength[0] > TRStrength[0]) {
 					TRStrength = CEStrength;
 					toReturn = ce;
-				} else if (CEStrength[0] == TRStrength[0] && CEStrength[2] > TRStrength[2]) {
+				} else if (CEStrength[2] > TRStrength[2]) {
 					TRStrength = CEStrength;
 					toReturn = ce;
-				} else if (CEStrength[0] == TRStrength[0] && CEStrength[2] == TRStrength[2] && CEStrength[3] > TRStrength[3]) {
+				} else if (CEStrength[2] == TRStrength[2] && CEStrength[3] > TRStrength[3]) {
 					TRStrength = CEStrength;
 					toReturn = ce;
-				} else if (CEStrength[0] == TRStrength[0] && CEStrength[2] == TRStrength[2] && CEStrength[3] == TRStrength[3]) {
+				} else if (CEStrength[2] == TRStrength[2] && CEStrength[3] == TRStrength[3]) {
 					if (CEStrength[0] != 6) {
 						if (ce[4] != null && CEStrength[0] == 2 && ce[4].value > toReturn[4].value) {
 							toReturn = ce;

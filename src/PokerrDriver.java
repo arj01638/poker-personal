@@ -2,7 +2,7 @@
 public class PokerrDriver {
 
 	public static void main(String[] args) {
-		PokerrMain main = new PokerrMain();
+		PokerMain main = new PokerMain();
 		main.start();
 		
 	}

@@ -1,10 +1,6 @@
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.List;
 
 
 
@@ -27,7 +23,7 @@ public class TrueAddy extends PokerrPlayer {
 	int EXP = 3;
 	int LEARNING_KEYS = 50000;
 
-	TrueAddy(PokerrMain parent) {
+	TrueAddy(PokerMain parent) {
 		super(parent);
 	}
 
@@ -73,10 +69,10 @@ public class TrueAddy extends PokerrPlayer {
 				parent.board,
 				getBet(), 
 				getPlayerHash(parent.committedPlayers()),
-				getGameStage(parent.board),
-				0, //returnAmt
-				1, //decision
-				0  //bet
+				getGameStage(parent.board)
+				//returnAmt
+				//decision
+				//bet
 				);
 
 		if (!keys.isEmpty() && currentKey.gameStage == keys.getLast().gameStage && !keys.getLast().decided) {
@@ -248,9 +244,9 @@ class Key {
 
 	PokerrPlayer parent;
 
-	Key(PokerrPlayer parent, Card[] holeCards, Card[] board, int betFacing, HashSet<PokerrPlayer> playerHash, int gameStage, int returnAmt, int decision, double bet) {
-		ArrayList<Card> hc = new ArrayList<Card>();
-		ArrayList<Card> b = new ArrayList<Card>();
+	Key(PokerrPlayer parent, Card[] holeCards, Card[] board, int betFacing, HashSet<PokerrPlayer> playerHash, int gameStage) {
+		ArrayList<Card> hc = new ArrayList<>();
+		ArrayList<Card> b = new ArrayList<>();
 
 		for (Card i : holeCards)
 			if (i != null) hc.add(i);
@@ -258,15 +254,15 @@ class Key {
 			if (i != null) b.add(i);
 
 		// todo, keep holecards and board hashsets, 
-		this.holeCards = new HashSet<Card>(hc);
-		this.board = new HashSet<Card>(b);
+		this.holeCards = new HashSet<>(hc);
+		this.board = new HashSet<>(b);
 
 
 		this.betFacing = betFacing;
 		this.playerHash = playerHash;
 		this.gameStage = gameStage;
-		this.returnAmt = returnAmt;
-		this.decision = decision;
+		this.returnAmt = 0;
+		this.decision = 1;
 		decided = false;
 
 		this.parent = parent;
@@ -277,14 +273,14 @@ class Key {
 	@Override
 	public String toString() {
 		StringBuilder toReturn = new StringBuilder("--Key--\n");
-		toReturn.append("Hole Cards: " + holeCards + "\n");
-		toReturn.append("Board: " + board + "\n");
-		toReturn.append("BetFacing: " + betFacing + "\n");
-		toReturn.append("PlayerHash: " + playerHash + "\n");
-		toReturn.append("GameStage: " + parent.parent.gameIndex[gameStage] + "\n");
-		toReturn.append("ReturnAmt: " + returnAmt + "\n");
-		toReturn.append("Decision: " + decision + "\n");
-		toReturn.append("Decided: " + decided + "\n");
+		toReturn.append("Hole Cards: ").append(holeCards).append("\n");
+		toReturn.append("Board: ").append(board).append("\n");
+		toReturn.append("BetFacing: ").append(betFacing).append("\n");
+		toReturn.append("PlayerHash: ").append(playerHash).append("\n");
+		toReturn.append("GameStage: ").append(parent.parent.gameIndex[gameStage]).append("\n");
+		toReturn.append("ReturnAmt: ").append(returnAmt).append("\n");
+		toReturn.append("Decision: ").append(decision).append("\n");
+		toReturn.append("Decided: ").append(decided).append("\n");
 		//toReturn.append("Bet: " + bet + "\n");
 		return toReturn.toString();
 	}
@@ -306,7 +302,7 @@ class Key {
 		for (Card x : this.board) {
 			for (Card y : other.board) { 
 				difs += Math.abs(x.compareTo(y));
-				difs += 1/12*Math.abs(x.compareToS(y));
+				difs += (1.0 / 12.0)*Math.abs(x.compareToS(y));
 			}
 		}
 		return difs;

@@ -73,8 +73,7 @@ public class NeuralNetwork {
 
     public void fit(double[][] X, double[][] Y, int epochs, int verbose) {
         switch (verbose) {
-
-            case 0: {
+            case 0 -> {
                 System.out.println("Staring training with " + epochs + " epochs");
                 long start = System.currentTimeMillis();
                 for (int i = 0; i < epochs; i++) {
@@ -87,8 +86,7 @@ public class NeuralNetwork {
 
                 break;
             }
-
-            case 1: {
+            case 1 -> {
                 System.out.println("Staring training with " + epochs + " epochs");
                 long start = System.currentTimeMillis();
                 for (int i = 0; i < epochs; i++) {
@@ -216,7 +214,7 @@ class Matrix {
     }
 
     public List<Double> toArray() {
-        List<Double> temp = new ArrayList<Double>();
+        List<Double> temp = new ArrayList<>();
 
         for (int i = 0; i < rows; i++) {
             for (int j = 0; j < cols; j++) {

@@ -8,10 +8,10 @@ public class Pot {
 	int[] callersAmt;
 	
 	
-	Pot(LinkedList<PokerrPlayer> players, int potAmt, int length) {
+	Pot(LinkedList<PokerrPlayer> players, int length) {
 		callersAmt = new int[length];
 		this.players = players;
-		this.potAmt = potAmt;
+		this.potAmt = 0;
 	}
 	
 	

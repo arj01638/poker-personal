@@ -13,14 +13,14 @@ class Permutations<E> implements  Iterator<E[]>{
         this.arr = arr.clone();
         ind = new int[arr.length];
         //convert an array of any elements into array of integers - first occurrence is used to enumerate
-        Map<E, Integer> hm = new HashMap<E, Integer>();
+        Map<E, Integer> hm = new HashMap<>();
         for(int i = 0; i < arr.length; i++){
             Integer n = hm.get(arr[i]);
             if (n == null){
                 hm.put(arr[i], i);
                 n = i;
             }
-            ind[i] = n.intValue();
+            ind[i] = n;
         }
         Arrays.sort(ind);//start with ascending sequence of integers
 

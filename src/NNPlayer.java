@@ -1,26 +1,25 @@
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 
 public class NNPlayer extends PokerrPlayer{
 
 	NeuralNetwork nn;
-	int training_threshold = 500;
+	int training_threshold = 1500;
 	boolean trained = false;
 	
 	
 	LinkedList<double[]> keys = new LinkedList<>();
-	LinkedList<double[]> keyOutcome = new LinkedList<>();;
+	LinkedList<double[]> keyOutcome = new LinkedList<>();
 	int decisionIndex = 17;
 	int decidedIndex = 18;
 	
 	LinkedList<double[]> activeKeys = new LinkedList<>();
 	int startBank = 0;
 	
-	NNPlayer(PokerrMain parent) {
+	NNPlayer(PokerMain parent) {
 		super(parent);
-		nn = new NeuralNetwork(19, 14, 1, true); 
+		nn = new NeuralNetwork(25, 25, 1, true);
 	}
 
 	@Override
@@ -45,8 +44,8 @@ public class NNPlayer extends PokerrPlayer{
 		
 		if (parent.iterations < training_threshold) {
 			
-			int toReturn = (int) (Math.random()*0.5*STARTING_BANK);
-			toReturn = sanitizeBet(toReturn);
+			int toReturn = 0;//(int) (Math.random()*0.5*STARTING_BANK);
+			//toReturn = sanitizeBet2(toReturn);
 			addKey(toReturn);
 			//keys.getLast()[decisionIndex] = (double) toReturn;
 			parent.qPrint(Arrays.toString(keys.getLast()));
@@ -55,21 +54,22 @@ public class NNPlayer extends PokerrPlayer{
 		} else {
 			if (!trained) {
 				parent.qPrint(name + ": Training!");
-				nn.fit(keys.toArray(new double[][] {}),keyOutcome.toArray(new double[][] {}),1000,1); 
+				nn.fit(keys.toArray(new double[][] {}),keyOutcome.toArray(new double[][] {}),2500,0);
 				// logging set to 0, shows training time and average error
 				trained = true;
 			}
 			else {
-				int toReturn = (int) STARTING_BANK;//(Math.random()*STARTING_BANK);
-				toReturn = sanitizeBet(toReturn);
+				int toReturn = 0;//STARTING_BANK;//(Math.random()*STARTING_BANK);
+				//toReturn = sanitizeBet(toReturn);
 				addKey(toReturn);
 				keys.getLast()[decidedIndex] = 1;
 				parent.qPrint(Arrays.toString(keys.getLast()));
 				List<Double> evaluation = nn.predict(keys.getLast());
 				parent.qPrint(name + ": The above play would probably lead to a net: " + evaluation.toString());
-				toReturn = (int) (Math.round(evaluation.get(0))*(STARTING_BANK));
+				if (evaluation.get(0) < 0.5) return -1; else return 0;
+				/*toReturn = (int) ((Math.round(evaluation.get(0)*2)-1)*(STARTING_BANK));
 				toReturn = sanitizeBet(toReturn);
-				return toReturn;
+				return toReturn;*/
 			}
 		}
 		return -1;
@@ -81,7 +81,13 @@ public class NNPlayer extends PokerrPlayer{
 			int index = 1;
 			for (double[]  i : activeKeys) {
 				keyOutcome.remove(keyOutcome.size() - index);
-				keyOutcome.add(keyOutcome.size() - index + 1, new double[]{(((bank - startBank)/(parent.players.size()*STARTING_BANK))/2)+1});// = bank - startBank;
+				double num = ((double)(bank - startBank))/((double)(parent.players.size()*STARTING_BANK));
+				//parent.qPrint(Double.toString(num));
+				num /= 2;
+				//parent.qPrint(Double.toString(num));
+				num += 0.5;
+				//parent.qPrint(Double.toString(num));
+				keyOutcome.add(keyOutcome.size() - index + 1, new double[]{num});// = bank - startBank;
 				i[decidedIndex] = 1;
 				parent.qPrint(Arrays.toString(i));
 				parent.qPrint(Arrays.toString(keyOutcome.get(keyOutcome.size() - index)));
@@ -99,6 +105,8 @@ public class NNPlayer extends PokerrPlayer{
 
 	void addKey(int decision) {
 		int nullvalue = 0;
+		int[] bestHand = strength(bestHand(parent.board, true));
+		int[] bestHandBoard = strength(bestHand(parent.board, false));
 		double[] key = {
 			(double)holeCards[0].value/14,
 			(double)holeCards[0].suit/4,
@@ -117,8 +125,14 @@ public class NNPlayer extends PokerrPlayer{
 			(double)getBet()/(parent.players.size()*STARTING_BANK),
 			(double)getPlayerHash(parent.committedPlayers())/(Math.pow(10,parent.players.size())),
 			(double)getGameStage(parent.board)/4,
-			decision/(parent.players.size()*STARTING_BANK), //decision
-			0 //decided
+			(double)decision/(double)(parent.players.size()*STARTING_BANK), //decision
+			0, //decided,
+				bestHand[0],
+				bestHand[2],
+				bestHand[3],
+				bestHandBoard[0],
+				bestHandBoard[2],
+				bestHandBoard[3]
 		};
 		keys.add(key);
 		activeKeys.add(key);
@@ -139,6 +153,18 @@ public class NNPlayer extends PokerrPlayer{
 		if (getBet() > toReturn) return -1;
 		if (getBet() == toReturn) return 0;
 		toReturn = getBet() - toReturn;
+		if (toReturn + getBet() < BB)
+			toReturn = BB - getBet();
+		if (toReturn + getBet() < getBet() * 2)
+			toReturn = 0;
+		if (toReturn + getBet() > bank)
+			toReturn = bank - (toReturn + getBet());
+		if (toReturn < 0)
+			toReturn = 0;
+		return toReturn;
+	}
+	int sanitizeBet2(int tr) {
+		int toReturn = tr;
 		if (toReturn + getBet() < BB)
 			toReturn = BB - getBet();
 		if (toReturn + getBet() < getBet() * 2)
