@@ -5,7 +5,7 @@ import java.util.List;
 public class NNPlayer extends PokerrPlayer{
 
 	NeuralNetwork nn;
-	int training_threshold = 2000;
+	int training_threshold = 1750;
 	boolean trained = false;
 	int inputSize = 15;
 	
@@ -20,7 +20,7 @@ public class NNPlayer extends PokerrPlayer{
 	NNPlayer(PokerMain parent) {
 		super(parent);
 		inputSize += parent.players.size();
-		nn = new NeuralNetwork(inputSize, 25, 1, true);
+		nn = new NeuralNetwork(inputSize, inputSize/2, 1, true);
 	}
 
 	@Override
@@ -45,10 +45,8 @@ public class NNPlayer extends PokerrPlayer{
 		
 		if (parent.iterations < training_threshold) {
 			
-			int toReturn = 0;//(int) (Math.random()*0.5*STARTING_BANK);
-			//toReturn = sanitizeBet2(toReturn);
+			int toReturn = 0;
 			addKey(toReturn);
-			//keys.getLast()[decisionIndex] = (double) toReturn;
 			parent.qPrint(Arrays.toString(keys.getLast()));
 			
 			return toReturn;
@@ -60,8 +58,7 @@ public class NNPlayer extends PokerrPlayer{
 				trained = true;
 			}
 			else {
-				int toReturn = 0;//STARTING_BANK;//(Math.random()*STARTING_BANK);
-				//toReturn = sanitizeBet(toReturn);
+				int toReturn = 0;
 				addKey(toReturn);
 				keys.getLast()[decidedIndex] = 1;
 				parent.qPrint(Arrays.toString(keys.getLast()));
@@ -69,7 +66,7 @@ public class NNPlayer extends PokerrPlayer{
 				parent.qPrint(name + ": The above play would probably lead to a net: " + evaluation.toString());
 				if (evaluation.get(0) < 0.5) return -1; //else return 0;
 				toReturn = (int) ((Math.round(evaluation.get(0)*2)-0.5)*bank);//(STARTING_BANK));
-				toReturn = sanitizeBet(toReturn);
+				toReturn = sanitizeBetV(toReturn);
 				return toReturn;
 			}
 		}
@@ -117,7 +114,6 @@ public class NNPlayer extends PokerrPlayer{
 		keyList.add((double)holeCards[1].suit/4);
 		keyList.add((double)getBet()/(parent.players.size()*STARTING_BANK));
 		keyList.add((double)getGameStage(parent.board)/4);
-		keyList.add((double)decision/(double)(parent.players.size()*STARTING_BANK)); //decision
 		keyList.add((double) bestHand[0]);
 		keyList.add((double) bestHand[2]);
 		keyList.add((double) bestHand[3]);
@@ -125,9 +121,9 @@ public class NNPlayer extends PokerrPlayer{
 		keyList.add((double) bestHandBoard[2]);
 		keyList.add((double) bestHandBoard[3]);
 		for (PokerrPlayer p : parent.players) {
-			keyList.add(inTheHand == true ? 1.0 : 0.0);
+			if (p != this) keyList.add(inTheHand == true ? 1.0 : 0.0);
 		}
-		double[] key = new double[keyList.size()];//keyList.toArray(new double[]{});
+		double[] key = new double[inputSize];//keyList.toArray(new double[]{});
 		for (int i = 0; i < keyList.size(); i++) {
 			key[i] = keyList.get(i);
 		}
@@ -137,34 +133,7 @@ public class NNPlayer extends PokerrPlayer{
 	}
 
 
-	int sanitizeBet(int tr) {
-		int toReturn = tr;
-		if (getBet() > toReturn) return 0;//-1;
-		if (getBet() == toReturn) return 0;
-		toReturn = getBet() - toReturn;
-		if (toReturn + getBet() < BB)
-			toReturn = BB - getBet();
-		if (toReturn + getBet() < getBet() * 2)
-			toReturn = 0;
-		if (toReturn + getBet() > bank)
-			toReturn = bank - (toReturn + getBet());
-		if (toReturn < 0)
-			toReturn = 0;
-		return toReturn;
-	}
 
-	int sanitizeBet2(int tr) {
-		int toReturn = tr;
-		if (toReturn + getBet() < BB)
-			toReturn = BB - getBet();
-		if (toReturn + getBet() < getBet() * 2)
-			toReturn = 0;
-		if (toReturn + getBet() > bank)
-			toReturn = bank - (toReturn + getBet());
-		if (toReturn < 0)
-			toReturn = 0;
-		return toReturn;
-	}
 	private int factorial(int number) {
 		int fact = 1;
 		for(int i=1;i<=number;i++){

@@ -8,7 +8,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public class PokerMain {
 
 
-	final int ROUNDS = 2500;
+	final int ROUNDS = 2000;
 	boolean PRINT = true;
 	boolean SPEED = false;
 	final int BB = 500;
@@ -51,9 +51,26 @@ public class PokerMain {
 	void definePlayers() {
 
 		/*
+		 * Calls on the flop.
+		 * Bets proportionally to its hand's strength.
+		 * Folds if it isn't getting good 'value'.
+		 */
+		addPlayer(true, "Val", new PokerrPlayer(this) {
+			@Override
+			int evaluate() {
+				if (getGameStage(board) == 0) return 0;
+				int[] strength = strength(bestHand(parent.board,true));
+				int decision = (int) (BB * Math.pow(((double)strength[0]+(double)strength[2]/14.0),2));
+				decision = sanitizeBetV(decision);
+				return decision;
+			}
+		});
+
+
+		/*
 		 * Folds ~1/11 of the time.
 		 * Else, makes random move.
-		 * If beyond the 50th hand, just call, for god's sake.
+		 * If beyond the 50th hand, just call, for god's sake. Added to prevent super long games.
 		 */
 		addPlayer(false, "Dornk", new PokerrPlayer(this) {
 			@Override
@@ -80,7 +97,7 @@ public class PokerMain {
 		 * Always minbets if no bet is facing it.
 		 * Never folds.	
 		 */
-		addPlayer(true,"OptyMB", new PokerrPlayer(this) {
+		addPlayer(true,"Ohm", new PokerrPlayer(this) {
 			@Override
 			public int evaluate() {
 				int betfacing = getBet();
@@ -100,11 +117,11 @@ public class PokerMain {
 
 
 		/*
-		 * Control, bets a random proportion of its bank.
+		 * Control, raises a random proportion of its bank.
 		 * If can't raise that much, just call.
 		 * For testing purposes.
 		 */
-		addPlayer(true,"control", new PokerrPlayer(this) {
+		addPlayer(false,"Lucy", new PokerrPlayer(this) {
 			@Override
 			public int evaluate() {
 				int betfacing = getBet();
@@ -113,14 +130,7 @@ public class PokerMain {
 				int evaluation;
 				evaluation = (int) (Math.random() * 0.25 * bank);
 				
-				if (evaluation + getBet() < BB)
-					evaluation = BB - getBet();
-				if (evaluation + getBet() < getBet() * 2)
-					evaluation = 0;
-				if (evaluation + getBet() > bank)
-					evaluation = bank - (evaluation + getBet());
-				if (evaluation < 0)
-					evaluation = 0;
+				evaluation = sanitizeBet(evaluation);
 				
 				return evaluation;
 			}
@@ -131,7 +141,7 @@ public class PokerMain {
 		 * Goes all-in if it has anything better than a high card.
 		 * Folds otherwise (except pre-flop).
 		 */
-		addPlayer(false,"Alli_MK1", new PokerrPlayer(this) {
+		addPlayer(false,"Ally1", new PokerrPlayer(this) {
 			@Override
 			public int evaluate() {
 				int betfacing = getBet();
@@ -152,7 +162,7 @@ public class PokerMain {
 		 * Goes all-in if it has anything better than a pair.
 		 * Folds otherwise (except pre-flop).
 		 */
-		addPlayer(false,"Alli_MK2", new PokerrPlayer(this) {
+		addPlayer(false,"Ally2", new PokerrPlayer(this) {
 			@Override
 			public int evaluate() {
 				int betfacing = getBet();
@@ -173,7 +183,7 @@ public class PokerMain {
 		 * Goes all-in if it has anything better than a high card that's not on the board.
 		 * Folds otherwise (except pre-flop).
 		 */
-		addPlayer(false,"Alli_MK3", new PokerrPlayer(this) {
+		addPlayer(false,"Ally3", new PokerrPlayer(this) {
 			@Override
 			public int evaluate() {
 				int betfacing = getBet();
@@ -193,7 +203,7 @@ public class PokerMain {
 		/*
 		 * Pseudo 'machine learning' with LOTS of hardcoded help.
 		 */
-		addPlayer(false,"Add'y", new PokerrPlayer(this) {
+		addPlayer(false,"Addy", new PokerrPlayer(this) {
 			//params
 			//i will call if i haven't seen this scenario exactly countThreshold or more times.
 			final int COUNT_THRESHOLD = 1;
@@ -624,10 +634,14 @@ public class PokerMain {
 				}
 			}
 		});
+
+		/*
+		* idk i tried to make something similar to addy with less help but gave up and moved on
+		* not usable in current state
+		* */
+		addPlayer(false,"Addy Jr.", new TrueAddy(this));
 		
-		addPlayer(false,"Tru-Add'y", new TrueAddy(this));
-		
-		addPlayer(true,"NNPlayer", new NNPlayer(this));
+		addPlayer(true,"Nuri Newark", new NNPlayer(this));
 	}
 
 	void qPrint(String x) {

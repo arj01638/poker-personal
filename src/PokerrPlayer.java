@@ -232,4 +232,33 @@ public abstract class PokerrPlayer {
 		return pot;
 	}
 
+	int sanitizeBetV(int tr) {
+		int toReturn = tr;
+		if (getBet() > toReturn) return -1;
+		if (getBet() == toReturn) return 0;
+		toReturn = toReturn - getBet();
+		if (toReturn + getBet() < BB)
+			toReturn = BB - getBet();
+		if (toReturn + getBet() < getBet() * 2)
+			toReturn = 0;
+		if (toReturn + getBet() > bank)
+			toReturn = bank - (toReturn + getBet());
+		if (toReturn < 0)
+			toReturn = 0;
+		return toReturn;
+	}
+
+	int sanitizeBet(int tr) {
+		int toReturn = tr;
+		if (toReturn + getBet() < BB)
+			toReturn = BB - getBet();
+		if (toReturn + getBet() < getBet() * 2)
+			toReturn = 0;
+		if (toReturn + getBet() > bank)
+			toReturn = bank - (toReturn + getBet());
+		if (toReturn < 0)
+			toReturn = 0;
+		return toReturn;
+	}
+
 }
