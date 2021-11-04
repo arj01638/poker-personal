@@ -8,7 +8,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public class PokerMain {
 
 
-	final int ROUNDS = 2000;
+	final int ROUNDS = 2500;
 	boolean PRINT = true;
 	boolean SPEED = false;
 	final int BB = 500;
@@ -111,7 +111,7 @@ public class PokerMain {
 				if (betfacing > bank)
 					return 0;
 				int evaluation;
-				evaluation = (int) (Math.random() * bank);
+				evaluation = (int) (Math.random() * 0.25 * bank);
 				
 				if (evaluation + getBet() < BB)
 					evaluation = BB - getBet();

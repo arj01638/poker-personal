@@ -92,12 +92,8 @@ public abstract class PokerrPlayer {
 				&&	ce[2].value == ce[3].value + 1
 				&&	ce[3].value == ce[4].value + 1) {
 			CEStrength[0] = 4;
-			CEStrength[2] = ce[0].value;
 			//straight flush
-			if (ce[3] != null && ce[4] != null && ce[0].suit == ce[1].suit
-					&& ce[1].suit == ce[2].suit
-					&& ce[2].suit == ce[3].suit
-					&& ce[3].suit == ce[4].suit) {
+			if (ce[0].suit == ce[1].suit && ce[1].suit == ce[2].suit && ce[2].suit == ce[3].suit && ce[3].suit == ce[4].suit) {
 				CEStrength[0] = 8;
 				if (ce[0].value == 14) {
 					CEStrength[0] = 9;
@@ -110,16 +106,12 @@ public abstract class PokerrPlayer {
 				&&	ce[3].value == 2
 				&&	ce[4].value == 14) {
 			CEStrength[0] = 4;
-			CEStrength[2] = ce[0].value;
 			//straight wheel flush
-			if (ce[3] != null && ce[4] != null && ce[0].suit == ce[1].suit 
+			if (ce[0].suit == ce[1].suit
 					&& ce[1].suit == ce[2].suit 
 					&& ce[2].suit == ce[3].suit 
 					&& ce[3].suit == ce[4].suit) {
 				CEStrength[0] = 8;
-				if (ce[0].value == 14) {
-					CEStrength[0] = 9;
-				}
 			}
 		}
 

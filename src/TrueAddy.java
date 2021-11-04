@@ -8,7 +8,7 @@ import java.util.LinkedList;
 
 /*
 *
-* DEPRECATED. DO NOT USE.
+* DEPRECATED. DO NOT USE. IT ALSO SUCKS. LOL.
 *
 */
 

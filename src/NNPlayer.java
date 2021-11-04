@@ -5,21 +5,22 @@ import java.util.List;
 public class NNPlayer extends PokerrPlayer{
 
 	NeuralNetwork nn;
-	int training_threshold = 1500;
+	int training_threshold = 2000;
 	boolean trained = false;
-	
+	int inputSize = 15;
 	
 	LinkedList<double[]> keys = new LinkedList<>();
 	LinkedList<double[]> keyOutcome = new LinkedList<>();
-	int decisionIndex = 17;
-	int decidedIndex = 18;
+	int decisionIndex = 0;
+	int decidedIndex = 1;
 	
 	LinkedList<double[]> activeKeys = new LinkedList<>();
 	int startBank = 0;
 	
 	NNPlayer(PokerMain parent) {
 		super(parent);
-		nn = new NeuralNetwork(25, 25, 1, true);
+		inputSize += parent.players.size();
+		nn = new NeuralNetwork(inputSize, 25, 1, true);
 	}
 
 	@Override
@@ -54,7 +55,7 @@ public class NNPlayer extends PokerrPlayer{
 		} else {
 			if (!trained) {
 				parent.qPrint(name + ": Training!");
-				nn.fit(keys.toArray(new double[][] {}),keyOutcome.toArray(new double[][] {}),2500,0);
+				nn.fit(keys.toArray(new double[][] {}),keyOutcome.toArray(new double[][] {}),5000,0);
 				// logging set to 0, shows training time and average error
 				trained = true;
 			}
@@ -66,10 +67,10 @@ public class NNPlayer extends PokerrPlayer{
 				parent.qPrint(Arrays.toString(keys.getLast()));
 				List<Double> evaluation = nn.predict(keys.getLast());
 				parent.qPrint(name + ": The above play would probably lead to a net: " + evaluation.toString());
-				if (evaluation.get(0) < 0.5) return -1; else return 0;
-				/*toReturn = (int) ((Math.round(evaluation.get(0)*2)-1)*(STARTING_BANK));
+				if (evaluation.get(0) < 0.5) return -1; //else return 0;
+				toReturn = (int) ((Math.round(evaluation.get(0)*2)-0.5)*bank);//(STARTING_BANK));
 				toReturn = sanitizeBet(toReturn);
-				return toReturn;*/
+				return toReturn;
 			}
 		}
 		return -1;
@@ -106,51 +107,39 @@ public class NNPlayer extends PokerrPlayer{
 	void addKey(int decision) {
 		int nullvalue = 0;
 		int[] bestHand = strength(bestHand(parent.board, true));
-		int[] bestHandBoard = strength(bestHand(parent.board, false));
-		double[] key = {
-			(double)holeCards[0].value/14,
-			(double)holeCards[0].suit/4,
-			(double)holeCards[1].value/14,
-			(double)holeCards[1].suit/4,
-			parent.board[0] != null ? (double)parent.board[0].value/14 : nullvalue,
-			parent.board[0] != null ? (double)parent.board[0].suit/4 : nullvalue,
-			parent.board[1] != null ? (double)parent.board[1].value/14 : nullvalue,
-			parent.board[1] != null ? (double)parent.board[1].suit/4 : nullvalue,
-			parent.board[2] != null ? (double)parent.board[2].value/14 : nullvalue,
-			parent.board[2] != null ? (double)parent.board[2].suit/4 : nullvalue,
-			parent.board[3] != null ? (double)parent.board[3].value/14 : nullvalue,
-			parent.board[3] != null ? (double)parent.board[3].suit/4 : nullvalue,
-			parent.board[4] != null ? (double)parent.board[4].value/14 : nullvalue,
-			parent.board[4] != null ? (double)parent.board[4].suit/4 : nullvalue,
-			(double)getBet()/(parent.players.size()*STARTING_BANK),
-			(double)getPlayerHash(parent.committedPlayers())/(Math.pow(10,parent.players.size())),
-			(double)getGameStage(parent.board)/4,
-			(double)decision/(double)(parent.players.size()*STARTING_BANK), //decision
-			0, //decided,
-				bestHand[0],
-				bestHand[2],
-				bestHand[3],
-				bestHandBoard[0],
-				bestHandBoard[2],
-				bestHandBoard[3]
-		};
+		int[] bestHandBoard = getGameStage(parent.board) != 0 ? strength(bestHand(parent.board, false)) : new int[] {0,0,0,0};
+		LinkedList<Double> keyList = new LinkedList<>();
+		keyList.add((double)decision/(double)(parent.players.size()*STARTING_BANK));
+		keyList.add(0.0);
+		keyList.add((double)holeCards[0].value/14);
+		keyList.add((double)holeCards[0].suit/4);
+		keyList.add((double)holeCards[1].value/14);
+		keyList.add((double)holeCards[1].suit/4);
+		keyList.add((double)getBet()/(parent.players.size()*STARTING_BANK));
+		keyList.add((double)getGameStage(parent.board)/4);
+		keyList.add((double)decision/(double)(parent.players.size()*STARTING_BANK)); //decision
+		keyList.add((double) bestHand[0]);
+		keyList.add((double) bestHand[2]);
+		keyList.add((double) bestHand[3]);
+		keyList.add((double) bestHandBoard[0]);
+		keyList.add((double) bestHandBoard[2]);
+		keyList.add((double) bestHandBoard[3]);
+		for (PokerrPlayer p : parent.players) {
+			keyList.add(inTheHand == true ? 1.0 : 0.0);
+		}
+		double[] key = new double[keyList.size()];//keyList.toArray(new double[]{});
+		for (int i = 0; i < keyList.size(); i++) {
+			key[i] = keyList.get(i);
+		}
 		keys.add(key);
 		activeKeys.add(key);
 		keyOutcome.add(new double[]{0});
 	}
 
 
-	int getPlayerHash(LinkedList<PokerrPlayer> x) {
-		int hash = 0;
-		for (PokerrPlayer p : x) {
-			hash += Math.pow(10, x.indexOf(p));
-		}
-		return hash;
-	}
-	
 	int sanitizeBet(int tr) {
 		int toReturn = tr;
-		if (getBet() > toReturn) return -1;
+		if (getBet() > toReturn) return 0;//-1;
 		if (getBet() == toReturn) return 0;
 		toReturn = getBet() - toReturn;
 		if (toReturn + getBet() < BB)
@@ -163,6 +152,7 @@ public class NNPlayer extends PokerrPlayer{
 			toReturn = 0;
 		return toReturn;
 	}
+
 	int sanitizeBet2(int tr) {
 		int toReturn = tr;
 		if (toReturn + getBet() < BB)
@@ -175,5 +165,11 @@ public class NNPlayer extends PokerrPlayer{
 			toReturn = 0;
 		return toReturn;
 	}
-	
+	private int factorial(int number) {
+		int fact = 1;
+		for(int i=1;i<=number;i++){
+			fact=fact*i;
+		}
+		return fact;
+	}
 }
