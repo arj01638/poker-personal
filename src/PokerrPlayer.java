@@ -15,6 +15,7 @@ public abstract class PokerrPlayer {
 	public int frontMoney = 0;
 	public PokerMain parent;
 	public LinkedList<Double> winningHistory;
+	public Card[] bh;
 	
 	PokerrPlayer(PokerMain parent) {
 		this.parent = parent;
@@ -234,7 +235,8 @@ public abstract class PokerrPlayer {
 
 	int sanitizeBetV(int tr) {
 		int toReturn = tr;
-		if (getBet() > toReturn) return -1;
+		if (getBet() * 1.5 > toReturn) return -1;
+		if (getBet()> toReturn) return 0;
 		if (getBet() == toReturn) return 0;
 		toReturn = toReturn - getBet();
 		if (toReturn + getBet() < BB)

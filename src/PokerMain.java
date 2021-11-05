@@ -8,7 +8,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public class PokerMain {
 
 
-	final int ROUNDS = 2000;
+	final int ROUNDS = 1500;
 	boolean PRINT = true;
 	boolean SPEED = false;
 	final int BB = 500;
@@ -801,15 +801,16 @@ public class PokerMain {
 						i.bet = 0;
 						i.callersAmt = new int[players.size()];
 					}
-					if (activePlayers().size() != 1) {
-						printDebug(0);
-					} else {
-						printDebug(3);
-					}
 					for (PokerrPlayer p : players) {
 						p.frontMoney = 0;
 						if (p.bank < 0)
 							throw new RuntimeException("negative bank");
+						p.bh = p.bestHand(board,true);
+					}
+					if (activePlayers().size() != 1) {
+						printDebug(0);
+					} else {
+						printDebug(3);
 					}
 					if (CSV)
 						printCSV();
