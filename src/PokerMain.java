@@ -682,10 +682,19 @@ public class PokerMain {
 
 	void start() {
 
+
+
 		long time1 = System.currentTimeMillis();
 
 		iterations = 0;
 		definePlayers();
+
+
+		if (TEST) {
+			unitTest();
+		}
+
+
 
 		File file = new File("pokercsv.csv");
 		file.delete();
@@ -730,7 +739,7 @@ public class PokerMain {
 				for (PokerPlayer p : activePlayers()) {
 					p.holeCards[0] = deck.randomCard();
 					p.holeCards[1] = deck.randomCard();
-					if (p.holeCards[1].value > p.holeCards[0].value) {
+					if (p.holeCards[1].val > p.holeCards[0].val) {
 						Card temp = p.holeCards[1];
 						p.holeCards[1] = p.holeCards[0];
 						p.holeCards[0] = temp;
@@ -918,22 +927,22 @@ public class PokerMain {
 					decision = -1;
 				} else {
 					Integer[] winnerVals = new Integer[] {
-							first[0].value,
-							first[1].value,
-							first[2].value,
-							first[3].value,
-							first[4].value
+							first[0].val,
+							first[1].val,
+							first[2].val,
+							first[3].val,
+							first[4].val
 					};
 					Integer[] pVals = new Integer[] {
-							second[0].value,
-							second[1].value,
-							second[2].value,
-							second[3].value,
-							second[4].value
+							second[0].val,
+							second[1].val,
+							second[2].val,
+							second[3].val,
+							second[4].val
 					};
 
-					Arrays.sort(winnerVals, Collections.reverseOrder());
-					Arrays.sort(pVals, Collections.reverseOrder());
+					Arrays.sort(winnerVals);
+					Arrays.sort(pVals);
 
 					for (int i = 0; i < 5; i++) {
 						if (winnerVals[i] < pVals[i]) {
@@ -954,7 +963,7 @@ public class PokerMain {
 
 	void showdown(int pot, LinkedList<PokerPlayer> activePlayers) {
 		PokerPlayer winner = activePlayers.get(0);
-		for(PokerPlayer p : activePlayers) {
+		for(PokerPlayer p : activePlayers()) {
 			Card[] winnerBestHand = winner.bh;
 			Card[] pBestHand = p.bh;
 			if (PokerPlayer.strength(pBestHand)[0] > PokerPlayer.strength(winnerBestHand)[0]) {
@@ -963,27 +972,26 @@ public class PokerMain {
 				if (PokerPlayer.strength(winnerBestHand)[2] < PokerPlayer.strength(pBestHand)[2]) {
 					winner = p;
 				} else if (PokerPlayer.strength(winnerBestHand)[2] == PokerPlayer.strength(pBestHand)[2]){
-
 					if (PokerPlayer.strength(winnerBestHand)[3] < PokerPlayer.strength(pBestHand)[3]) {
 						winner = p;
 					} else {
 						Integer[] winnerVals = new Integer[] {
-								winnerBestHand[0].value,
-								winnerBestHand[1].value,
-								winnerBestHand[2].value,
-								winnerBestHand[3].value,
-								winnerBestHand[4].value
+								winnerBestHand[0].val,
+								winnerBestHand[1].val,
+								winnerBestHand[2].val,
+								winnerBestHand[3].val,
+								winnerBestHand[4].val
 						};
 						Integer[] pVals = new Integer[] {
-								pBestHand[0].value,
-								pBestHand[1].value,
-								pBestHand[2].value,
-								pBestHand[3].value,
-								pBestHand[4].value
+								pBestHand[0].val,
+								pBestHand[1].val,
+								pBestHand[2].val,
+								pBestHand[3].val,
+								pBestHand[4].val
 						};
 
-						Arrays.sort(winnerVals, Collections.reverseOrder());
-						Arrays.sort(pVals, Collections.reverseOrder());
+						Arrays.sort(winnerVals);
+						Arrays.sort(pVals);
 
 						for (int i = 0; i < 5; i++) {
 							if (winnerVals[i] < pVals[i]) {
@@ -1001,26 +1009,26 @@ public class PokerMain {
 
 		LinkedList<PokerPlayer> winners = new LinkedList<>();
 		winners.add(winner);
-		for(PokerPlayer p : activePlayers) {
+		for(PokerPlayer p : activePlayers()) {
 			Card[] winnerBestHand = winner.bh;
 			Integer[] winnerVals = new Integer[] {
-					winnerBestHand[0].value,
-					winnerBestHand[1].value,
-					winnerBestHand[2].value,
-					winnerBestHand[3].value,
-					winnerBestHand[4].value
+					winnerBestHand[0].val,
+					winnerBestHand[1].val,
+					winnerBestHand[2].val,
+					winnerBestHand[3].val,
+					winnerBestHand[4].val
 			};
-			Arrays.sort(winnerVals, Collections.reverseOrder());
+			Arrays.sort(winnerVals);
 
 			Card[] pBestHand = p.bh;
 			Integer[] pVals = new Integer[] {
-					pBestHand[0].value,
-					pBestHand[1].value,
-					pBestHand[2].value,
-					pBestHand[3].value,
-					pBestHand[4].value
+					pBestHand[0].val,
+					pBestHand[1].val,
+					pBestHand[2].val,
+					pBestHand[3].val,
+					pBestHand[4].val
 			};
-			Arrays.sort(pVals, Collections.reverseOrder());
+			Arrays.sort(pVals);
 
 			boolean equ = true;
 			for (int i = 0; i < 5; i++) {
@@ -1385,5 +1393,88 @@ public class PokerMain {
 		string.append("]");
 		return string.toString();
 	}
+
+	void unitTest() {
+		PokerPlayer pl = players.get(0);
+		Card[] test = new Card[5];
+		test[0] = new Card(5,4);
+		test[1] = new Card(6,4);
+		test[2] = new Card(7,4);
+		test[3] = new Card(8,4);
+		test[4] = new Card(10,1);
+		pl.holeCards[0] = new Card(2,2);
+		pl.holeCards[1] = new Card(3,2);
+		System.out.println(Arrays.toString(pl.strength(pl.bestHand(test,true)))); // 0
+		System.out.println();
+		pl.holeCards[0] = new Card(5,2);
+		pl.holeCards[1] = new Card(3,2);
+		System.out.println(Arrays.toString(pl.strength(pl.bestHand(test,true)))); // 1
+		System.out.println();
+		pl.holeCards[0] = new Card(5,2);
+		pl.holeCards[1] = new Card(6,2);
+		System.out.println(Arrays.toString(pl.strength(pl.bestHand(test,true)))); // 2
+		System.out.println();
+		pl.holeCards[0] = new Card(5,2);
+		pl.holeCards[1] = new Card(5,3);
+		System.out.println(Arrays.toString(pl.strength(pl.bestHand(test,true)))); // 3
+		System.out.println();
+		pl.holeCards[0] = new Card(4,2);
+		pl.holeCards[1] = new Card(5,3);
+		System.out.println(Arrays.toString(pl.bestHand(test,true)));
+		System.out.println(Arrays.toString(pl.strength(pl.bestHand(test,true)))); // 4
+		System.out.println();
+		pl.holeCards[0] = new Card(4,2);
+		pl.holeCards[1] = new Card(14,4);
+		System.out.println(Arrays.toString(pl.bestHand(test,true)));
+		System.out.println(Arrays.toString(pl.strength(pl.bestHand(test,true)))); // 5
+		System.out.println();
+		pl.holeCards[0] = new Card(5,2);
+		pl.holeCards[1] = new Card(5,3);
+		test[4] = new Card(6,2);
+		System.out.println(Arrays.toString(pl.bestHand(test,true)));
+		System.out.println(Arrays.toString(pl.strength(pl.bestHand(test,true)))); // 6
+		System.out.println();
+		test[4] = new Card(5,1);
+		System.out.println(Arrays.toString(pl.strength(pl.bestHand(test,true)))); // 7
+		System.out.println();
+		pl.holeCards[0] = new Card(4,4);
+		pl.holeCards[1] = new Card(5,1);
+		System.out.println(Arrays.toString(pl.bestHand(test,true)));
+		System.out.println(Arrays.toString(pl.strength(pl.bestHand(test,true)))); // 8
+		System.out.println();
+		test[0] = new Card(14,4);
+		test[1] = new Card(13,4);
+		test[2] = new Card(12,4);
+		test[3] = new Card(11,4);
+		test[4] = new Card(9,1);
+		pl.holeCards[0] = new Card(10,4);
+		pl.holeCards[1] = new Card(5,1);
+		System.out.println(Arrays.toString(pl.strength(pl.bestHand(test,true)))); // 9
+		System.out.println();
+		test[0] = new Card(13,1);
+		test[1] = new Card(4,2);
+		test[2] = new Card(5,3);
+		test[3] = new Card(3,4);
+		test[4] = new Card(2,1);
+		pl.holeCards[0] = new Card(14,4);
+		pl.holeCards[1] = new Card(5,1);
+		System.out.println(Arrays.toString(pl.bestHand(test,true)));
+		System.out.println(Arrays.toString(pl.strength(pl.bestHand(test,true)))); // 4
+		System.out.println();
+		test[0] = new Card(13,1);
+		test[1] = new Card(4,1);
+		test[2] = new Card(5,1);
+		test[3] = new Card(3,1);
+		test[4] = new Card(2,1);
+		pl.holeCards[0] = new Card(14,1);
+		pl.holeCards[1] = new Card(5,2);
+		System.out.println(Arrays.toString(pl.bestHand(test,true)));
+		System.out.println(Arrays.toString(pl.strength(pl.bestHand(test,true)))); // 8
+		System.out.println();
+
+		if (!(test[0].val == 9))
+			throw new RuntimeException();
+	}
+
 
 }

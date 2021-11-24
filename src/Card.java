@@ -1,22 +1,22 @@
 
 public class Card implements Comparable<Card> {
 
-	int value;
+	int val;
 	int suit;
 	
 	Card(int value, int suit) {
-		this.value = value;
+		this.val = value;
 		this.suit = suit;
 	} // Card
 	
 	@Override
 	public String toString() {
-		return value + "." + suit;
+		return val + "." + suit;
 	}
 
 	@Override
 	public int compareTo(Card o) {
-		return o.value - this.value;
+		return o.val - this.val;
 	}
 	
 	public int compareToS(Card o) {
