@@ -14,7 +14,7 @@ import java.util.LinkedList;
 
 
 
-public class TrueAddy extends PokerrPlayer {
+public class TrueAddy extends PokerPlayer {
 
 	boolean DEBUG = true;
 	boolean vDEBUG = false;
@@ -190,16 +190,16 @@ public class TrueAddy extends PokerrPlayer {
 		return toReturn;
 	}
 
-	HashSet<PokerrPlayer> getPlayerHash(LinkedList<PokerrPlayer> x) {
+	HashSet<PokerPlayer> getPlayerHash(LinkedList<PokerPlayer> x) {
 		return new HashSet<>(x);
 	}
 
-	int playerHashDistance(HashSet<PokerrPlayer> x, HashSet<PokerrPlayer> y) {
+	int playerHashDistance(HashSet<PokerPlayer> x, HashSet<PokerPlayer> y) {
 		int difs = 0;
-		for (PokerrPlayer p : x) {
+		for (PokerPlayer p : x) {
 			if (!y.contains(p)) difs++;
 		}
-		for (PokerrPlayer p : y) {
+		for (PokerPlayer p : y) {
 			if (!x.contains(p)) difs++;
 		}
 		return difs;
@@ -235,16 +235,16 @@ class Key {
 	HashSet<Card> holeCards;
 	HashSet<Card> board;
 	int betFacing;
-	HashSet<PokerrPlayer> playerHash;
+	HashSet<PokerPlayer> playerHash;
 	int gameStage;
 	int returnAmt;
 	int decision;
 	boolean decided;
 	int count;
 
-	PokerrPlayer parent;
+	PokerPlayer parent;
 
-	Key(PokerrPlayer parent, Card[] holeCards, Card[] board, int betFacing, HashSet<PokerrPlayer> playerHash, int gameStage) {
+	Key(PokerPlayer parent, Card[] holeCards, Card[] board, int betFacing, HashSet<PokerPlayer> playerHash, int gameStage) {
 		ArrayList<Card> hc = new ArrayList<>();
 		ArrayList<Card> b = new ArrayList<>();
 
