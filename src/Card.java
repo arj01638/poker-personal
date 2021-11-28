@@ -1,8 +1,8 @@
 
 public class Card implements Comparable<Card> {
 
-	int val;
-	int suit;
+	final int val;
+	final int suit;
 	
 	Card(int value, int suit) {
 		this.val = value;

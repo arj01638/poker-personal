@@ -1,6 +1,5 @@
 import java.util.Arrays;
 import java.util.LinkedList;
-import java.util.List;
 
 public abstract class PokerPlayer {
 
@@ -8,14 +7,14 @@ public abstract class PokerPlayer {
     final int SB = BB / 2;
     final int STARTING_BANK = 10000;
     public int bank;
-    public Card[] holeCards = new Card[2];
+    public final Card[] holeCards = new Card[2];
     public boolean inTheHand = true;
     public boolean allIn = false;
     public double totalWinnings = 0;
     public String name = "";
     public int frontMoney = 0;
-    public PokerMain parent;
-    public LinkedList<Double> winningHistory;
+    public final PokerMain parent;
+    public final LinkedList<Double> winningHistory;
     public Card[] bh;
 
     PokerPlayer(PokerMain parent) {
@@ -174,7 +173,7 @@ public abstract class PokerPlayer {
             boolean[] straightIndex = new boolean[count];
             boolean[] flushIndex = new boolean[count];
             boolean[] wheelCrt = new boolean[5];
-            boolean wheel = false;
+            boolean wheel;
             //pairs
             for (int i = 0; i < count; i++) {
                 //suit tallying
@@ -231,7 +230,10 @@ public abstract class PokerPlayer {
             }
             wheel = true;
             for (int i = 0; i < 5; i++) {
-                if (!wheelCrt[i]) wheel = false;
+                if (!wheelCrt[i]) {
+                    wheel = false;
+                    break;
+                }
             }
             if (wheel) {
                 hasStraight = true;
@@ -308,20 +310,7 @@ public abstract class PokerPlayer {
                 }
             }
 
-            /*System.out.println("--------------------------");
-            System.out.println("raw " + Arrays.toString(raw));
-            System.out.println("matches " + Arrays.toString(matches));
-            System.out.println("suits " + Arrays.toString(suits));
-            System.out.println("hasStraight " + hasStraight);
-            System.out.println("hasFlush " + hasFlush);
-            System.out.println("straightIndex " + Arrays.toString(straightIndex));
-            System.out.println("flushIndex " + Arrays.toString(flushIndex));
-            System.out.println("wheel " + wheel);
-            System.out.println("strength " + strength);
-            System.out.println("--------------------------");*/
-
-
-            LinkedList<Card> rawList = new LinkedList<Card>(Arrays.asList(raw));
+            LinkedList<Card> rawList = new LinkedList<>(Arrays.asList(raw));
             /* COMPUTE FINAL BEST HAND */
             switch (strength) {
                 case 0:
@@ -423,7 +412,7 @@ public abstract class PokerPlayer {
                         for (int i = 0; i < rawList.size(); i++) {
                             if (straightIndex[i] && flushIndex[i]) {
                                 if (index2 == 0) {
-                                    index = raw[i].val;
+                                    index2 = raw[i].val;
                                     straightFlushList.add(raw[i]);
                                 } else if (raw[i].val == index2 - 1) {
                                     straightFlushList.add(raw[i]);
@@ -485,7 +474,7 @@ public abstract class PokerPlayer {
                     for (int i = 0; i < count; i++) {
                         if (matches[i] == 2) {
                             Card z = raw[i];
-                            rawList.remove(rawList.indexOf(z));
+                            rawList.remove(z);
                             rawList.add(3, z);
                         }
                     }
