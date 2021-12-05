@@ -8,7 +8,6 @@ public class PokerDriver {
 		} catch (Exception e) {
 			main.printGlobalString();
 			e.printStackTrace();
-
 		}
 		
 	}

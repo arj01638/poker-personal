@@ -28,7 +28,7 @@ public class PokerMain {
 	boolean nextCard;
 	int better;
 	int gameStage;
-	LinkedList<Pot> pots;
+	LinkedList<Pot> pots = new LinkedList<>();
 	int bankSum = 0;
 	int game;
 	int hand;
@@ -69,7 +69,7 @@ public class PokerMain {
 		/*
 		 * Calculates
 		 */
-		addPlayer(true, "The Equator", new PokerPlayer(this) {
+		addPlayer(false, "The Equator", new PokerPlayer(this) {
 			@Override
 			int evaluate() {
 				int[] strength = strength(bh);
@@ -213,7 +213,7 @@ public class PokerMain {
 		/*
 		 * Pseudo "machine learning" with LOTS of hardcoded help.
 		 */
-		addPlayer(true,"Addy", new PokerPlayer(this) {
+		addPlayer(false,"Addy", new PokerPlayer(this) {
 			//params
 			//i will call if i haven't seen this scenario exactly countThreshold or more times.
 			final int COUNT_THRESHOLD = 1;
@@ -682,20 +682,14 @@ public class PokerMain {
 	}
 
 	void start() {
-
-
-
 		long time1 = System.currentTimeMillis();
 
 		game = 0;
 		definePlayers();
 
-
 		if (TEST) {
 			unitTest();
 		}
-
-
 
 		File file = new File("pokercsv.csv");
 		file.delete();
