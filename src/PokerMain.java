@@ -8,7 +8,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public class PokerMain {
 
 
-	final int ROUNDS = 2000;
+	final int ROUNDS = 10000;
 	final boolean PRINT = false;
 	final boolean SPEED = false;
 	final int BB = 500;
