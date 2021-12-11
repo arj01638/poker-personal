@@ -23,6 +23,10 @@ public abstract class PokerPlayer {
         winningHistory = new LinkedList<>();
     }
 
+    public String fullName() {
+        return name + " (" + parent.players.indexOf(this) + ")";
+    }
+
     public double winningsSlope() {
         double sum = 0;
         int lookback = 150;
@@ -174,7 +178,6 @@ public abstract class PokerPlayer {
             boolean[] flushIndex = new boolean[count];
             boolean[] wheelCrt = new boolean[5];
             boolean wheel;
-            //pairs
             for (int i = 0; i < count; i++) {
                 //suit tallying
                 suits[raw[i].suit - 1]++;
@@ -329,11 +332,14 @@ public abstract class PokerPlayer {
                 case 2:
                     int highestPair = 0;
                     int highestPairIndex = -1;
+                    int otherPair = 0;
                     for (int i = 0; i < count; i++) {
                         if (matches[i] == 2) {
                             if (highestPair < raw[i].val) {
+                                otherPair = highestPair;
                                 highestPair = raw[i].val;
                                 highestPairIndex = i;
+                                i = 0;
                             }
                         }
                     }
@@ -348,7 +354,7 @@ public abstract class PokerPlayer {
                             rawList.add(1, y);
                             i = 2;
                             foundHighestPair = true;
-                        } else if (foundHighestPair) {
+                        } else if (foundHighestPair && rawList.get(i).val == otherPair) {
                             Card y = rawList.get(i);
                             rawList.remove(i);
                             rawList.add(2, y);
@@ -523,6 +529,8 @@ public abstract class PokerPlayer {
         return pot;
     }
 
+    // input: what i would be willing to call total
+    // output: call or fold depending on value
     int sanitizeBetV(int tr) {
         int toReturn = tr;
         if (getBet() * 1.5 > toReturn) return -1;
@@ -540,6 +548,8 @@ public abstract class PokerPlayer {
         return toReturn;
     }
 
+    // input: how much i want to raise by
+    // output: input obeying raising rules
     int sanitizeBet(int tr) {
         int toReturn = tr;
         if (toReturn + getBet() < BB)
