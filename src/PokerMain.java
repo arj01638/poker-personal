@@ -8,14 +8,16 @@ import java.util.concurrent.ThreadLocalRandom;
 public class PokerMain {
 
 
-	final int ROUNDS = 100;
+	final int ROUNDS = 10;
 	final boolean PRINT = true;
 	final boolean PRINT_MORE = false;
 	final int BB = 500;
 	final int SB = BB / 2;
-	final boolean TEST = false;
+	final int STARTING_BANK = 90*BB;
+	final boolean TEST = true;
 	final boolean CSV = false;
 	final boolean STOP_WHEN_LAST_PLAYER_WINS = false;
+	final int SLEEP = 0;
 
 
 
@@ -47,6 +49,15 @@ public class PokerMain {
 		globalString = new StringBuilder();
 	} // PokerMain
 
+	void slumber() {
+		if (SLEEP > 0) {
+			try {
+				Thread.sleep(SLEEP);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+	}
 
 	void definePlayers() {
 
@@ -710,8 +721,10 @@ public class PokerMain {
 		game = 0;
 		definePlayers();
 
-		if (TEST)
+		if (TEST) {
 			unitTest();
+			return;
+		}
 
 
 
@@ -759,8 +772,9 @@ public class PokerMain {
 
 				deck = new Deck();
 				gameStage = 0;
-				if (PRINT)
+				if (PRINT) {
 					qPrint("==================" + gameIndex[gameStage] + "=================\n");
+				}
 				toPlay = nextPlayer(BBpos);
 				for (PokerPlayer p : activePlayers()) {
 					p.holeCards[0] = deck.randomCard();
@@ -770,8 +784,9 @@ public class PokerMain {
 						p.holeCards[1] = p.holeCards[0];
 						p.holeCards[0] = temp;
 					}
-					if (PRINT)
+					if (PRINT) {
 						qPrint(p.name + "(" + players.indexOf(p) + ")" + " is dealt " + p.holeCards[0] + "," + p.holeCards[1]);
+					}
 				}
 
 				nextCard = false;
@@ -901,7 +916,17 @@ public class PokerMain {
 	} // start
 
 	void printGlobalString() {
-		System.out.println(globalString);
+		if (SLEEP > 0) {
+			String[] lines = globalString.toString().split("\\n");
+			for (String s : lines) {
+				System.out.println(s);
+				if (s.compareTo("") != 0)
+					slumber();
+
+			}
+		} else {
+			System.out.println(globalString);
+		}
 		globalString = new StringBuilder();
 	}
 
@@ -1033,6 +1058,7 @@ public class PokerMain {
 				}
 			}
 		} else {
+			qPrint("e");
 			int counter = winners.size();
 			for(PokerPlayer p : winners) {
 				if (PRINT)
@@ -1319,7 +1345,7 @@ public class PokerMain {
 			for (PokerPlayer p : x) {
 				p.winningHistory.add(p.totalWinnings);
 				qPrint(p.name + "(" + players.indexOf(p) + ")" + " winnings: " + p.totalWinnings
-						+ " (" + (p.totalWinnings / game) + ")");
+						+ " (ROI: " + (p.totalWinnings / game) + ")");
 			}
 		}
 		if (PRINT)
@@ -1342,21 +1368,9 @@ public class PokerMain {
 
 	void unitTest() {
 		PokerPlayer pl = players.get(0);
-		PokerPlayer pl2 = players.get(1);
-		Card[] test = new Card[5];
-		test[0] = new Card(12,1);
-		test[1] = new Card(12,2);
-		test[2] = new Card(3,3);
-		test[3] = new Card(2,4);
-		//test[4] = new Card(12,2);
-		pl.holeCards[0] = new Card(4,4);
-		pl.holeCards[1] = new Card(4,3);
-		//pl2.holeCards[0] = new Card(10,4);
-		//pl2.holeCards[1] = new Card(3,3);
-
-		if (pl.strength(pl.bestHand(test,true))[0] != 2) {
-			throw new RuntimeException();
-		}
+		pl.holeCards[0] = new Card(14,4);
+		pl.holeCards[1] = new Card(14,3);
+		System.out.println(Arrays.toString(pl.getEquity(2,new Card[5])));
 	}
 
 

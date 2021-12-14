@@ -54,5 +54,9 @@ public class Card implements Comparable<Card> {
 		if (o.suit != this.suit) return 1;
 		return 0;
 	}
+
+	public Card copyOf() {
+		return new Card(this.val, this.suit);
+	}
 	
 }
