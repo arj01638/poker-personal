@@ -30,7 +30,7 @@ public class PokerMain {
 	boolean nextCard;
 	int better;
 	int gameStage;
-	LinkedList<Pot> pots = new LinkedList<>();
+	final LinkedList<Pot> pots = new LinkedList<>();
 	int bankSum = 0;
 	int game;
 	int hand;
@@ -83,8 +83,6 @@ public class PokerMain {
 		addPlayer(false, "The Equator", new PokerPlayer(this) {
 			@Override
 			int evaluate() {
-				int[] strength = strength(bh);
-				int decision = 0;
 				//todo
 				return 0;
 			}
@@ -171,9 +169,9 @@ public class PokerMain {
 					} else { return -1; }
 				} else {
 					int[] strength = strength(bh);
-					if (strength(bh)[0] > 0
-							&& strength(bh)[0] > strength(bestHand(board, false))[0]) {
-						if (betFacing == 0) return sanitizeBet(BB*(strength(bh)[0]+1));
+					if (strength[0] > 0
+							&& strength[0] > strength(bestHand(board, false))[0]) {
+						if (betFacing == 0) return sanitizeBet(BB*(strength[0]+1));
 						return 0;
 					}
 					if (betFacing == 0)
@@ -730,24 +728,26 @@ public class PokerMain {
 
 
 
-		File file = new File("pokercsv.csv");
-		file.delete();
-		try {
-			file.createNewFile();
-			StringBuilder header = new StringBuilder();
-			header.append("game,hand,street,gameStage,potAmt,");
-			for (PokerPlayer p : players) {
-				header.append(p.name).append("_bank,");
-				header.append(p.name).append("_winnings,");
-				header.append(p.name).append("_slope,");
+		if (CSV) {
+			File file = new File("pokercsv.csv");
+			file.delete();
+			try {
+				file.createNewFile();
+				StringBuilder header = new StringBuilder();
+				header.append("game,hand,street,gameStage,potAmt,");
+				for (PokerPlayer p : players) {
+					header.append(p.name).append("_bank,");
+					header.append(p.name).append("_winnings,");
+					header.append(p.name).append("_slope,");
+				}
+				header.append("playerSize");
+				FileWriter fw = new FileWriter("pokercsv.csv", true);
+				BufferedWriter bw = new BufferedWriter(fw);
+				out = new PrintWriter(bw);
+				out.println(header);
+			} catch (Exception e) {
+				e.printStackTrace();
 			}
-			header.append("playerSize");
-			FileWriter fw = new FileWriter("pokercsv.csv", true);
-			BufferedWriter bw = new BufferedWriter(fw);
-			out = new PrintWriter(bw);
-			out.println(header);
-		} catch (Exception e) {
-			e.printStackTrace();
 		}
 
 
@@ -771,7 +771,7 @@ public class PokerMain {
 				pots.clear();
 				pots.add(new Pot(activePlayers(), players.size()));
 
-				deck = new Deck();
+				deck = new Deck(true);
 				gameStage = 0;
 				if (PRINT) {
 					qPrint("==================" + gameIndex[gameStage] + "=================\n");
@@ -848,7 +848,7 @@ public class PokerMain {
 							throw new RuntimeException("negative bank");
 					}
 					printSummary(0);
-					printCSV();
+					if (CSV) printCSV();
 					street++;
 				}
 
@@ -1224,7 +1224,7 @@ public class PokerMain {
 				if (PRINT && forceEval == -1) {
 					if (solo)
 						qPrint(current.name + "(" + players.indexOf(current) + ")" + " is the last one remaining");
-					if (evaluation > 0 && forceEval == -1) {
+					if (evaluation > 0) {
 						qPrint(current.name + "(" + players.indexOf(current) + ")" + " raises to " + (bet + evaluation));
 					} else if (bet - frontMoney == 0) {
 						qPrint(current.name + "(" + players.indexOf(current) + ")" + " checks");
@@ -1288,8 +1288,7 @@ public class PokerMain {
 	void printSummary(int mode) {
 
 		if (mode == 0 && PRINT) {
-			if (PRINT)
-				qPrint("");
+			qPrint("");
 			printSummary(1);
 			qPrint("Board: " + getBoard() + "\n");
 			StringBuilder str = new StringBuilder();
@@ -1297,15 +1296,14 @@ public class PokerMain {
 				if (player.holeCards[0] == null) {
 					str.append(player.fullName()).append(" was not dealt in this hand.\n");
 				} else {
-					PokerPlayer p = player;
-					Card[] pBestHand = p.bh;
-					str.append(p.fullName()).append(" cards:  ")
-							.append(p.holeCards[0]).append(",").append(p.holeCards[1]).append(" (besthand: ")
+					Card[] pBestHand = player.bh;
+					str.append(player.fullName()).append(" cards:  ")
+							.append(player.holeCards[0]).append(",").append(player.holeCards[1]).append(" (besthand: ")
 							.append(Arrays.toString(pBestHand)).append(")\n");
-					str.append(p.fullName()).append(" strength: ").append(handIndex[PokerPlayer.strength(p.bh)[0]]).append("\n");
-					str.append(p.fullName()).append(" bank:  ").append(p.bank);
+					str.append(player.fullName()).append(" strength: ").append(handIndex[PokerPlayer.strength(player.bh)[0]]).append("\n");
+					str.append(player.fullName()).append(" bank:  ").append(player.bank);
 					str.append("\n");
-					str.append(p.fullName()).append(p.inTheHand ? " is" : " is not").append(" in the hand.");
+					str.append(player.fullName()).append(player.inTheHand ? " is" : " is not").append(" in the hand.");
 					str.append("\n");
 				}
 			} // for
@@ -1360,8 +1358,6 @@ public class PokerMain {
 			if (board[i] != null) {
 				if (i != 0) string.append(",");
 				string.append(board[i].toString());
-			} else {
-				//string.append(" ");
 			}
 		}
 		string.append("]");

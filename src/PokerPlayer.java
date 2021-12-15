@@ -926,7 +926,6 @@ public abstract class PokerPlayer {
             deck.mainDeck.remove(j);
             deck.mainDeck.add(c);
         }
-        boolean stopIterating = false;
         int size = 5 + (2*(eq2.length - 2));
         if (debug) System.out.println("shuffled deck: " + deck.mainDeck.toString());
         for (List<Card> boardAndHand : Generator.combination(deck.mainDeck).simple(size)) {

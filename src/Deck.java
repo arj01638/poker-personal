@@ -4,9 +4,6 @@ import java.util.concurrent.ThreadLocalRandom;
 public class Deck {
 
 	final LinkedList<Card> mainDeck = new LinkedList<>();
-	Deck() {
-		this.clear();
-	}
 
 	Deck(Card[] blacklist) {
 		this.clear(blacklist);
@@ -17,7 +14,7 @@ public class Deck {
 	}
 	
 	public Card randomCard() {
-		Card c = null;
+		Card c;
 		try {
 			c = mainDeck.remove(ThreadLocalRandom.current().nextInt(0, mainDeck.size()));
 		} catch(IllegalArgumentException e) {
@@ -51,23 +48,6 @@ public class Deck {
 			}
 		}
 	} // clear
-
-	public int size() {
-		return mainDeck.size();
-	}
-	public Card get(int i) {
-		return mainDeck.get(i);
-	}
-	public Deck remove(Card c) {
-		for (int i = 0; i < mainDeck.size(); i++) {
-			Card d = mainDeck.get(i);
-			if (d.val == c.val && d.suit == c.suit) {
-				mainDeck.remove(i);
-				return this;
-			}
-		}
-		throw new RuntimeException("tried to remove card that doesnt exist");
-	}
 
 	public void add(Card c) {
 		mainDeck.add(c);
