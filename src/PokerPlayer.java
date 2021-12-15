@@ -1,5 +1,9 @@
+import org.paukov.combinatorics3.Generator;
+
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
+import java.util.List;
 
 public abstract class PokerPlayer {
 
@@ -879,7 +883,7 @@ public abstract class PokerPlayer {
         return getTotalBet() - getFrontMoney();
     }
 
-    //returns [countIWin,countTheyWin,countWeChop]
+    //returns [countTheyWin,countWeChop,countIWin]
     public int[] getEquity(int numPlayers, Card[] board2) {
         Card[] board = new Card[5];
         for (int i = 0; i < 5; i++) {
@@ -904,6 +908,7 @@ public abstract class PokerPlayer {
             else if (board[i - 2] != null) blacklist[i] = board[i - 2];
         }
         Deck deck = new Deck(blacklist);
+        //System.out.println(deck.mainDeck.toString());
         int[] counts = new int[3];
         eqIterate(counts, eq, deck);
 
@@ -911,64 +916,53 @@ public abstract class PokerPlayer {
         return counts;
     }
 
-    //int skipper = 0;
     private int[] eqIterate(int[] counts, Card[][] eq2, Deck deck2) {
-        //skipper++;
-        //if (skipper > 1000 && !(skipper % 2 == 0)) return counts;
+        final boolean debug = false;
         Card[][] eq = copyEq(eq2);
         Deck deck = deck2.deepCopy();
+        if (debug) System.out.println("un shuffled deck: " + deck.mainDeck.toString());
+        for (int i = 0; i < deck.mainDeck.size()*7; i++) {
+            int j = (int) (Math.random()*deck.mainDeck.size());
+            Card c = deck.mainDeck.get(j);
+            deck.mainDeck.remove(j);
+            deck.mainDeck.add(c);
+        }
         boolean stopIterating = false;
-
-        //if any player cards are null
-        for (int i = 0; i < eq.length; i++) {
-            if (i > 0) {
-                for (int j = 0; j < eq[i].length; j++) {
-                    if (eq[i][j] == null) {
-                        stopIterating = true;
-                        while ((eq[i][j] = deck.randomCard()) != null) {
-                            eqIterate(counts, eq, deck2.deepCopy().remove(eq[i][j]));
-                        }
-                        deck = deck2.deepCopy();
+        int size = 5 + (2*(eq2.length - 2));
+        if (debug) System.out.println("shuffled deck: " + deck.mainDeck.toString());
+        for (List<Card> boardAndHand : Generator.combination(deck.mainDeck).simple(size)) {
+            if (debug) System.out.println("current board&hand list: " + boardAndHand);
+            for (List<Card> possibleHand : Generator.combination(boardAndHand).simple(2*(eq.length-2))) {
+                if (debug) System.out.println("current possibleHand list: " + possibleHand);
+                int index = 0;
+                for (int i = 2; i < eq.length; i++) {
+                    eq[i][0] = possibleHand.get(index).copyOf();
+                    index++;
+                    eq[i][1] = possibleHand.get(index).copyOf();
+                    index++;
+                }
+                int ind = 0;
+                for (Card c : boardAndHand) {
+                    if (!possibleHand.contains(c)) {
+                        eq[0][ind] = (c.copyOf());
+                        ind++;
                     }
                 }
-            }
-        }
-
-        if (!stopIterating) {
-            //if any board cards are null
-            for (int i = 0; i < eq[0].length; i++) {
-                if (eq[0][i] == null) {
-                    while ((eq[0][i] = deck.randomCard()) != null) {
-                        eqIterate(counts, eq, deck2.deepCopy().remove(eq[0][i]));
+                int outcome = 1;
+                for (int i = 2; i < eq.length; i++) {
+                    if (parent.decideWinner(bestHand(eq[0],eq[1]),bestHand(eq[0],eq[i])) < 0) {
+                        outcome = -1;
+                        break;
                     }
-                    stopIterating = true;
+                    if (parent.decideWinner(bestHand(eq[0],eq[1]),bestHand(eq[0],eq[i])) == 0) {
+                        if (outcome != -1) outcome = 0;
+                    }
                 }
+                counts[outcome + 1]++;
+                if (debug) System.out.println(Arrays.toString(eq[1]) + Arrays.toString(eq[2]) + Arrays.toString(eq[0]) + outcome);
+                if (counts [0] + counts[1] + counts[2] > 100000000) return counts;
             }
         }
-
-        //SHOWDOWN
-        if (!stopIterating) {
-            Card[] myBH = bestHand(eq[0], eq[1]);
-            boolean win = true;
-            for (int i = 2; i < eq.length; i++) {
-                Card[] villainBH = bestHand(eq[0], eq[i]);
-                if (parent.decideWinner(myBH, villainBH) < 0) {
-                    counts[1]++;
-                    System.out.println(Arrays.toString(eq[1]) + Arrays.toString(eq[2]) + Arrays.toString(eq[0]) + "loss");
-                    return counts;
-                }
-                if (parent.decideWinner(myBH, villainBH) == 0) {
-                    win = false;
-                }
-            }
-            if (win) counts[0]++; else counts[2]++;
-
-            if (win)
-                System.out.println(Arrays.toString(eq[1]) + Arrays.toString(eq[2]) + Arrays.toString(eq[0]) + "win");
-            else
-                System.out.println(Arrays.toString(eq[1]) + Arrays.toString(eq[2]) + Arrays.toString(eq[0]) + "draw");
-        }
-
         return counts;
     }
 

@@ -723,6 +723,7 @@ public class PokerMain {
 
 		if (TEST) {
 			unitTest();
+			System.out.println(System.currentTimeMillis() - time1);
 			return;
 		}
 

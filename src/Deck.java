@@ -3,7 +3,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class Deck {
 
-	private final LinkedList<Card> mainDeck = new LinkedList<>();
+	final LinkedList<Card> mainDeck = new LinkedList<>();
 	Deck() {
 		this.clear();
 	}
@@ -40,11 +40,13 @@ public class Deck {
 		mainDeck.clear();
 		for (int i = 2; i < 15; i++) {
 			for (int k = 1; k < 5; k++) {
+				boolean add = true;
 				for (int j = 0; j < blacklist.length; j++) {
-					if (!(blacklist[j].val == i && blacklist[j].suit == k)) {
-						mainDeck.add(new Card(i, k));
+					if (blacklist[j].val == i && blacklist[j].suit == k) {
+						add = false;
 					}
 				}
+				if (add) mainDeck.add(new Card(i, k));
 			}
 		}
 	} // clear
