@@ -85,7 +85,8 @@ public class PokerMain {
 			int evaluate() {
 				int[] strength = strength(bh);
 				int decision = 0;
-				return decision;
+				//todo
+				return 0;
 			}
 		});
 
@@ -754,9 +755,6 @@ public class PokerMain {
 			hand = 0;
 			game++;
 
-			if (PRINT)
-				qPrint("==========Game:" + game + "==========Hand:" + hand + "==========");
-
 			for (PokerPlayer p : players) {
 				p.bank = p.STARTING_BANK;
 				p.inTheHand = true;
@@ -765,6 +763,8 @@ public class PokerMain {
 			BBpos = nextPlayer(SBpos);
 			pots.clear();
 			while (hand < 10000) {
+				if (PRINT)
+					qPrint("==========Game:" + game + "==========Hand:" + hand + "==========");
 				street = 0;
 				board = new Card[5];
 				hand++;
@@ -1137,8 +1137,10 @@ public class PokerMain {
 				}
 			}
 			for (int i = 0; i < pots.size(); i++) {
-				if (pots.get(i).potAmt == 0) pots.remove(i);
-				break;
+				if (pots.get(i).potAmt == 0) {
+					pots.remove(i);
+					break;
+				}
 			}
 		} else {
 			//fold
@@ -1206,12 +1208,7 @@ public class PokerMain {
 							oldPot.callersAmt[players.indexOf(current)] = oldPot.bet;
 						} else {
 							Pot tempPot = pots.get(i);
-							tempPot.potAmt += tempPot.bet - tempPot.callersAmt[players.indexOf(current)];
-							current.bank -= tempPot.bet - tempPot.callersAmt[players.indexOf(current)];
-							tempPot.callersAmt[players.indexOf(current)] = tempPot.bet;
-							current.frontMoney += tempPot.bet;
-							if (tempPot.potAmt != 0 && !tempPot.players.contains(current))
-								tempPot.players.add(current);
+							potSplitHelper(current, tempPot);
 						}
 					}
 					if (!solo)
@@ -1219,12 +1216,7 @@ public class PokerMain {
 				} else {
 					for (Pot i : pots) {
 						frontMoney += i.callersAmt[players.indexOf(current)];
-						i.potAmt += i.bet - i.callersAmt[players.indexOf(current)];
-						current.bank -= i.bet - i.callersAmt[players.indexOf(current)];
-						i.callersAmt[players.indexOf(current)] = i.bet;
-						current.frontMoney += i.bet;
-						if (i.potAmt != 0 &&!i.players.contains(current))
-							i.players.add(current);
+						potSplitHelper(current, i);
 					}
 				}
 
@@ -1255,6 +1247,15 @@ public class PokerMain {
 				}
 			}
 		}
+	}
+
+	private void potSplitHelper(PokerPlayer current, Pot i) {
+		i.potAmt += i.bet - i.callersAmt[players.indexOf(current)];
+		current.bank -= i.bet - i.callersAmt[players.indexOf(current)];
+		i.callersAmt[players.indexOf(current)] = i.bet;
+		current.frontMoney += i.bet;
+		if (i.potAmt != 0 &&!i.players.contains(current))
+			i.players.add(current);
 	}
 
 	void nextCard() {
@@ -1291,24 +1292,24 @@ public class PokerMain {
 				qPrint("");
 			printSummary(1);
 			qPrint("Board: " + getBoard() + "\n");
-			for (int i = 0; i < players.size(); i++) {
-				StringBuilder str = new StringBuilder();
-				if (players.get(i).holeCards[0] == null) {
-					str.append(players.get(i).fullName()).append(" was not dealt in this hand.\n");
+			StringBuilder str = new StringBuilder();
+			for (PokerPlayer player : players) {
+				if (player.holeCards[0] == null) {
+					str.append(player.fullName()).append(" was not dealt in this hand.\n");
 				} else {
-					PokerPlayer p = players.get(i);
+					PokerPlayer p = player;
 					Card[] pBestHand = p.bh;
 					str.append(p.fullName()).append(" cards:  ")
 							.append(p.holeCards[0]).append(",").append(p.holeCards[1]).append(" (besthand: ")
 							.append(Arrays.toString(pBestHand)).append(")\n");
 					str.append(p.fullName()).append(" strength: ").append(handIndex[PokerPlayer.strength(p.bh)[0]]).append("\n");
-					str.append(p.fullName() + " bank:  " + p.bank);
+					str.append(p.fullName()).append(" bank:  ").append(p.bank);
 					str.append("\n");
-					str.append(p.fullName() + (p.inTheHand ? " is" : " is not") + " in the hand.");
+					str.append(p.fullName()).append(p.inTheHand ? " is" : " is not").append(" in the hand.");
 					str.append("\n");
 				}
-				qPrint(str.toString());
 			} // for
+			qPrint(str.toString());
 		} // if
 
 		// POT INFO

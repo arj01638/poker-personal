@@ -41,9 +41,10 @@ public class Deck {
 		for (int i = 2; i < 15; i++) {
 			for (int k = 1; k < 5; k++) {
 				boolean add = true;
-				for (int j = 0; j < blacklist.length; j++) {
-					if (blacklist[j].val == i && blacklist[j].suit == k) {
+				for (Card card : blacklist) {
+					if (card.val == i && card.suit == k) {
 						add = false;
+						break;
 					}
 				}
 				if (add) mainDeck.add(new Card(i, k));
@@ -74,8 +75,8 @@ public class Deck {
 
 	public Deck deepCopy() {
 		Deck deck = new Deck(false);
-		for (int i = 0; i < mainDeck.size(); i++) {
-			deck.add(mainDeck.get(i).copyOf());
+		for (Card card : mainDeck) {
+			deck.add(card.copyOf());
 		}
 		return deck;
 	}

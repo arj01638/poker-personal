@@ -1,6 +1,5 @@
 import org.paukov.combinatorics3.Generator;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -916,7 +915,7 @@ public abstract class PokerPlayer {
         return counts;
     }
 
-    private int[] eqIterate(int[] counts, Card[][] eq2, Deck deck2) {
+    private void eqIterate(int[] counts, Card[][] eq2, Deck deck2) {
         final boolean debug = false;
         Card[][] eq = copyEq(eq2);
         Deck deck = deck2.deepCopy();
@@ -960,10 +959,9 @@ public abstract class PokerPlayer {
                 }
                 counts[outcome + 1]++;
                 if (debug) System.out.println(Arrays.toString(eq[1]) + Arrays.toString(eq[2]) + Arrays.toString(eq[0]) + outcome);
-                if (counts [0] + counts[1] + counts[2] > 100000000) return counts;
+                if (counts [0] + counts[1] + counts[2] > 100000000) return;
             }
         }
-        return counts;
     }
 
     private Card[][] copyEq(Card[][] eq) {
