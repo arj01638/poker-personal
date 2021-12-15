@@ -1,5 +1,6 @@
 import org.paukov.combinatorics3.Generator;
 
+import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -915,10 +916,43 @@ public abstract class PokerPlayer {
         return counts;
     }
 
+    //Method to calculate the nCr value
+    long nCr(long n, long r)
+    {
+        BigInteger x = fact(n);
+        BigInteger y = fact(r);
+        BigInteger z = fact((n-r));
+        z = z.multiply(y);
+        x = x.divide(z);
+        return x.longValue();
+    }
+    //Method to calculate the factorial of the number
+    BigInteger fact(long n)
+    {
+        BigInteger res = new BigInteger("1");
+        for (int i = 2; i <= n; i++)
+            res = res.multiply(new BigInteger(Integer.toString(i)));
+        return res;
+    }
+
     private void eqIterate(int[] counts, Card[][] eq2, Deck deck2) {
         final boolean debug = false;
+        final long samples = 600000000;
+
+        int counter = 0;
         Card[][] eq = copyEq(eq2);
         Deck deck = deck2.deepCopy();
+
+        long possibleCombinations = 1;
+        int totalCards = 50;
+        for (int i = 2; i < eq.length; i++) {
+            possibleCombinations *= nCr(totalCards,2);
+            totalCards -= 2;
+        }
+        possibleCombinations *= nCr(totalCards,5);
+        long spreadVal = possibleCombinations/samples;
+        if (debug) System.out.println("only looking at every " + spreadVal + " board&hand");
+
         if (debug) System.out.println("un shuffled deck: " + deck.mainDeck.toString());
         for (int i = 0; i < deck.mainDeck.size()*7; i++) {
             int j = (int) (Math.random()*deck.mainDeck.size());
@@ -931,6 +965,8 @@ public abstract class PokerPlayer {
         for (List<Card> boardAndHand : Generator.combination(deck.mainDeck).simple(size)) {
             if (debug) System.out.println("current board&hand list: " + boardAndHand);
             for (List<Card> possibleHand : Generator.combination(boardAndHand).simple(2*(eq.length-2))) {
+                counter++;
+                if (!(counter % spreadVal == 0)) continue;
                 if (debug) System.out.println("current possibleHand list: " + possibleHand);
                 int index = 0;
                 for (int i = 2; i < eq.length; i++) {
@@ -947,20 +983,23 @@ public abstract class PokerPlayer {
                     }
                 }
                 int outcome = 1;
+                Card[] bh1 = bestHand(eq[0],eq[1]);
                 for (int i = 2; i < eq.length; i++) {
-                    if (parent.decideWinner(bestHand(eq[0],eq[1]),bestHand(eq[0],eq[i])) < 0) {
+                    Card[] bh2 = bestHand(eq[0],eq[i]);
+                    if (parent.decideWinner(bh1,bh2) < 0) {
                         outcome = -1;
                         break;
                     }
-                    if (parent.decideWinner(bestHand(eq[0],eq[1]),bestHand(eq[0],eq[i])) == 0) {
+                    if (parent.decideWinner(bh1,bh2) == 0) {
                         if (outcome != -1) outcome = 0;
                     }
                 }
                 counts[outcome + 1]++;
                 if (debug) System.out.println(Arrays.toString(eq[1]) + Arrays.toString(eq[2]) + Arrays.toString(eq[0]) + outcome);
-                if (counts [0] + counts[1] + counts[2] > 100000000) return;
+                if (counts [0] + counts[1] + counts[2] > samples) return;
             }
         }
+        System.out.println("returned normally");
     }
 
     private Card[][] copyEq(Card[][] eq) {
