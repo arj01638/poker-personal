@@ -259,7 +259,7 @@ public abstract class PokerPlayer {
         //flush
         if (hasFlush) strength = 5;
         //full house
-        if (numThrees > 0 && numTwos > 1) strength = 6;
+        if ((numThrees > 0 && numTwos > 1) || numThrees > 3) strength = 6;
         //quads
         if (numFours > 0) strength = 7;
         //straight flush
@@ -317,39 +317,35 @@ public abstract class PokerPlayer {
                 break;
             case 2:
                 int highestPair = 0;
-                int highestPairIndex = -1;
                 int otherPair = 0;
                 for (int i = 0; i < count; i++) {
                     if (matches[i] == 2) {
                         if (highestPair < raw[i].val) {
-                            otherPair = highestPair;
                             highestPair = raw[i].val;
-                            highestPairIndex = i;
-                            i = 0;
-                        } else {
+                        }
+                        if (raw[i].val < highestPair && otherPair < raw[i].val) {
                             otherPair = raw[i].val;
                         }
-
                     }
                 }
-                //todo, replace all (get, remove, add) three-liners with add(remove()) calls
-
-                rawList.addFirst(rawList.remove(highestPairIndex));
-                boolean foundHighestPair = false;
-                for (int i = 1; i < count; i++) {
+                for (int i = 0; i < count; i++) {
                     if (rawList.get(i).val == highestPair) {
-                        rawList.add(1, rawList.remove(i));
-                        i = 1;
-                        foundHighestPair = true;
-                    } else if (foundHighestPair && rawList.get(i).val == otherPair) {
+                        rawList.add(0, rawList.remove(i));
+                    } else if (rawList.get(i).val == otherPair) {
                         rawList.add(2, rawList.remove(i));
                     }
                 };
                 toReturn = rawList.toArray(new Card[]{});
                 break;
             case 3:
+                int highestTrips2 = 0;
                 for (int i = 0; i < count; i++) {
-                    if (matches[i] == 3) {
+                    if (matches[i] == 3 && highestTrips2 < raw[i].val) {
+                        highestTrips2 = raw[i].val;
+                    }
+                }
+                for (int i = 0; i < count; i++) {
+                    if (rawList.get(i).val == highestTrips2) {
                         rawList.addFirst(rawList.remove(i));
                     }
                 }
@@ -453,13 +449,27 @@ public abstract class PokerPlayer {
                 toReturn = flushList.toArray(new Card[]{});
                 break;
             case 6:
+                int highestTrips = 0;
+                int highestPair2 = 0;
                 for (int i = 0; i < count; i++) {
-                    if (matches[i] == 3) {
+                    if (matches[i] == 3 && highestTrips < raw[i].val) {
+                        highestTrips = raw[i].val;
+                    }
+                }
+                for (int i = 0; i < count; i++) {
+                    if (matches[i] >= 2 && highestPair2 < raw[i].val && highestTrips != raw[i].val) {
+                        highestPair2 = raw[i].val;
+                    }
+                }
+                for (int i = 0; i < count; i++) {
+                    int j = rawList.get(i).val;
+                    if (j == highestTrips) {
                         rawList.addFirst(rawList.remove(i));
                     }
                 }
                 for (int i = 0; i < count; i++) {
-                    if (matches[i] == 2) {
+                    int j = rawList.get(i).val;
+                    if (j == highestPair2) {
                         rawList.add(3, rawList.remove(i));
                     }
                 }
@@ -623,7 +633,7 @@ public abstract class PokerPlayer {
         for (List<Card> boardAndHand : Generator.combination(deck.mainDeck).simple(size)) {
             if (debug) System.out.println("current board&hand list: " + boardAndHand);
             counter++;
-            if (!(counter % spreadVal == 0)) continue;
+            if (!(counter % (spreadVal) == 0)) continue;
             for (List<Card> possibleHand : Generator.combination(boardAndHand).simple(2*(eq.length-2))) {
                 if (debug) System.out.println("current possibleHand: " + possibleHand);
                 int index = 0;
@@ -663,7 +673,7 @@ public abstract class PokerPlayer {
                 }
             }
         }
-        System.out.println("returned normally");
+        System.out.println("returned normally" + counter);
     }
 
     private Card[][] copyEq(Card[][] eq) {

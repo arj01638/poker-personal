@@ -1366,21 +1366,22 @@ public class PokerMain {
 
 	void unitTest() {
 		PokerPlayer pl = players.get(0);
-		pl.holeCards[0] = new Card(2,1);
-		pl.holeCards[1] = new Card(7,2);
-		/*Card[] board = new Card[5];
-		board[0] = new Card(13,4);
-		board[1] = new Card(4,4);
-		board[2] = new Card(6,3);
-		board[3] = new Card(6,4);
-		board[4] = new Card(13,3);
+		pl.holeCards[0] = new Card(14,1);
+		pl.holeCards[1] = new Card(14,2);
+		/*pl.holeCards[0] = new Card(4,1);
+		pl.holeCards[1] = new Card(14,2);
+		Card[] board = new Card[5];
+		board[0] = new Card(3,1);
+		board[1] = new Card(3,2);
+		board[2] = new Card(11,2);
+		board[3] = new Card(3,3);
+		board[4] = new Card(11,4);
 		System.out.println(Arrays.toString(pl.bestHand(board, pl.holeCards)));
-		if (pl.bestHand(board, pl.holeCards)[4].val != 7) throw new RuntimeException("penis");*/
+		if (pl.bestHand(board, pl.holeCards)[3].val != 11) throw new RuntimeException("penis");*/
 
 
 
-
-		int samples = 10000000;
+		int samples = 100000000;
 		int[] arr = pl.getEquity(2,new Card[5], samples);
 		System.out.println(Arrays.toString(arr));
 		System.out.println(((double)arr[2]) / (double)(arr[0] + arr[1] + arr[2]) + "|" + (arr[0] + arr[1] + arr[2]));
