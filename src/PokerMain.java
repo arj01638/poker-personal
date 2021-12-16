@@ -1381,7 +1381,7 @@ public class PokerMain {
 
 
 
-		int samples = 100000000;
+		int samples = 1000000;
 		int[] arr = pl.getEquity(2,new Card[5], samples);
 		System.out.println(Arrays.toString(arr));
 		System.out.println(((double)arr[2]) / (double)(arr[0] + arr[1] + arr[2]) + "|" + (arr[0] + arr[1] + arr[2]));

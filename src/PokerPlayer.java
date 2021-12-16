@@ -1,6 +1,7 @@
 import org.paukov.combinatorics3.Generator;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -613,52 +614,37 @@ public abstract class PokerPlayer {
         Card[][] eq = copyEq(eq2);
         Deck deck = deck2.deepCopy();
 
-        long possibleCombinations = 1;
-        int totalCards = 50;
-        for (int i = 2; i < eq.length; i++) {
-            possibleCombinations *= nCr(totalCards,2);
-            totalCards -= 2;
-        }
-        possibleCombinations *= nCr(totalCards,5);
-        long spreadVal = possibleCombinations/samples;
-        if (debug) System.out.println("only looking at every " + spreadVal + " possibleHand");
-
         if (debug) System.out.println("un shuffled deck: " + deck.mainDeck.toString());
-        for (int i = 0; i < deck.mainDeck.size()*7; i++) {
-            int j = (int) (Math.random()*deck.mainDeck.size());
-            deck.mainDeck.add(deck.mainDeck.remove(j));
-        }
-        int size = 5 + (2*(eq2.length - 2));
-        if (debug) System.out.println("shuffled deck: " + deck.mainDeck.toString());
-        for (List<Card> boardAndHand : Generator.combination(deck.mainDeck).simple(size)) {
-            if (debug) System.out.println("current board&hand list: " + boardAndHand);
-            counter++;
-            if (!(counter % (spreadVal) == 0)) continue;
-            for (List<Card> possibleHand : Generator.combination(boardAndHand).simple(2*(eq.length-2))) {
-                if (debug) System.out.println("current possibleHand: " + possibleHand);
-                int index = 0;
+        int deckSize = deck.mainDeck.size();
+        for (int k = 0; k < samples; k++) {
+            for (int i = 0; i < deckSize * 7; i++) {
+                int j = (int) (Math.random() * deckSize);
+                deck.mainDeck.add(deck.mainDeck.remove(j));
+            }
+            int size = 5 + (2 * (eq2.length - 2));
+            if (debug) System.out.println("shuffled deck: " + deck.mainDeck.toString());
+            LinkedList<Card> boardAndHand = deck.deepCopy().mainDeck;
+            int index = 0;
+            for (int j = 0; j < (deckSize - size); j += size) {
                 for (int i = 2; i < eq.length; i++) {
-                    eq[i][0] = possibleHand.get(index).copyOf();
+                    eq[i][0] = boardAndHand.get(index).copyOf();
                     index++;
-                    eq[i][1] = possibleHand.get(index).copyOf();
+                    eq[i][1] = boardAndHand.get(index).copyOf();
                     index++;
                 }
-                int ind = 0;
-                for (Card c : boardAndHand) {
-                    if (!possibleHand.contains(c)) {
-                        eq[0][ind] = (c.copyOf());
-                        ind++;
-                    }
+                for (int i = 0; i < 5; i++) {
+                    eq[0][i] = boardAndHand.get(index).copyOf();
+                    index++;
                 }
                 int outcome = 1;
-                Card[] bh1 = bestHand(eq[0],eq[1]);
+                Card[] bh1 = bestHand(eq[0], eq[1]);
                 for (int i = 2; i < eq.length; i++) {
-                    Card[] bh2 = bestHand(eq[0],eq[i]);
-                    if (parent.decideWinner(bh1,bh2) < 0) {
+                    Card[] bh2 = bestHand(eq[0], eq[i]);
+                    if (parent.decideWinner(bh1, bh2) < 0) {
                         outcome = -1;
                         break;
                     }
-                    if (parent.decideWinner(bh1,bh2) == 0) {
+                    if (parent.decideWinner(bh1, bh2) == 0) {
                         if (outcome != -1) outcome = 0;
                     }
                 }
@@ -673,6 +659,9 @@ public abstract class PokerPlayer {
                 }
             }
         }
+
+
+
         System.out.println("returned normally" + counter);
     }
 
