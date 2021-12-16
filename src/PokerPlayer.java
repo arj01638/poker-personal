@@ -627,6 +627,7 @@ public abstract class PokerPlayer {
             if (debug) System.out.println("current board&hand list: " + boardAndHand);
             for (List<Card> possibleHand : Generator.combination(boardAndHand).simple(2*(eq.length-2))) {
                 counter++;
+                //todo for tomorrow, add multithreading(?)
                 if (!(counter % spreadVal == 0)) continue;
                 if (debug) System.out.println("current possibleHand: " + possibleHand);
                 int index = 0;
