@@ -573,7 +573,6 @@ public abstract class PokerPlayer {
         int[] counts = new int[3];
         eqIterate(counts, eq, deck, smps);
 
-
         return counts;
     }
 
@@ -612,23 +611,20 @@ public abstract class PokerPlayer {
         }
         possibleCombinations *= nCr(totalCards,5);
         long spreadVal = possibleCombinations/samples;
-        if (debug) System.out.println("only looking at every " + spreadVal + " board&hand");
+        if (debug) System.out.println("only looking at every " + spreadVal + " possibleHand");
 
         if (debug) System.out.println("un shuffled deck: " + deck.mainDeck.toString());
         for (int i = 0; i < deck.mainDeck.size()*7; i++) {
             int j = (int) (Math.random()*deck.mainDeck.size());
-            Card c = deck.mainDeck.get(j);
-            deck.mainDeck.remove(j);
-            deck.mainDeck.add(c);
+            deck.mainDeck.add(deck.mainDeck.remove(j));
         }
         int size = 5 + (2*(eq2.length - 2));
         if (debug) System.out.println("shuffled deck: " + deck.mainDeck.toString());
         for (List<Card> boardAndHand : Generator.combination(deck.mainDeck).simple(size)) {
             if (debug) System.out.println("current board&hand list: " + boardAndHand);
+            counter++;
+            if (!(counter % spreadVal == 0)) continue;
             for (List<Card> possibleHand : Generator.combination(boardAndHand).simple(2*(eq.length-2))) {
-                counter++;
-                //todo for tomorrow, add multithreading(?)
-                if (!(counter % spreadVal == 0)) continue;
                 if (debug) System.out.println("current possibleHand: " + possibleHand);
                 int index = 0;
                 for (int i = 2; i < eq.length; i++) {
@@ -665,7 +661,6 @@ public abstract class PokerPlayer {
                     Card[] bh2 = bestHand(eq[0], eq[2]);
                     System.out.println("str2 " + Arrays.toString(strength(bh2)) + Arrays.toString(bh2));
                 }
-                //if (counts [0] + counts[1] + counts[2] > samples) return;
             }
         }
         System.out.println("returned normally");
