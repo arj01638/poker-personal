@@ -1,5 +1,3 @@
-import org.paukov.combinatorics3.Generator;
-
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
