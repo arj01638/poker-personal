@@ -152,46 +152,22 @@ public abstract class PokerPlayer {
         return CEStrength;
     } // strength
 
-    // Used to use permutations, but manually checking a few metrics
-    // and assembling the best hand improves performance >threefold.
-    public Card[] bestHand(Card[] board, boolean useHoleCards) {
-        Card[] toReturn = new Card[7];
-        if (board[0] == null) {
-            return Arrays.copyOf(holeCards, 2);
-        } else {
-            //hand rankings
-            int count = useHoleCards ? 2 : 0;
-            for (Card c : board) {
-                if (c != null)
-                    count++;
-            }
-            Card[] raw = new Card[count];
-            if (useHoleCards) {
-                raw[0] = holeCards[0];
-                raw[1] = holeCards[1];
-            }
-            for (int i = 0; i < count - (useHoleCards ? 2 : 0); i++) {
-                if (board[i] != null)
-                    raw[i + (useHoleCards ? 2 : 0)] = board[i];
-            }
-            Arrays.sort(raw);
-
-
-            /* COMPUTE METRICS */
-            int[] matches = new int[count];
-            int[] suits = new int[4];
-            boolean hasStraight = false;
-            boolean hasFlush = false;
-            //int flushSuit = -1;
-            boolean[] straightIndex = new boolean[count];
-            boolean[] flushIndex = new boolean[count];
-            boolean[] wheelCrt = new boolean[5];
-            boolean wheel;
-            for (int i = 0; i < count; i++) {
-                //suit tallying
+    private Card[] bestHandHelper(Card[] raw, int count) {
+        /* COMPUTE METRICS */
+        int[] matches = new int[count];
+        int[] suits = new int[4];
+        boolean hasStraight = false;
+        boolean hasFlush = false;
+        //int flushSuit = -1;
+        boolean[] straightIndex = new boolean[count];
+        boolean[] flushIndex = new boolean[count];
+        boolean[] wheelCrt = new boolean[5];
+        boolean wheel;
+        for (int i = 0; i < count; i++) {
+            //suit tallying
+            if (!hasFlush) {
                 suits[raw[i].suit - 1]++;
                 if (suits[raw[i].suit - 1] >= 5) {
-                    //flushSuit = raw[i].suit;
                     hasFlush = true;
                     for (int j = 0; j < count; j++) {
                         if (raw[j].suit == raw[i].suit) {
@@ -199,321 +175,351 @@ public abstract class PokerPlayer {
                         }
                     }
                 }
+            }
 
-                //match finding
-                for (int j = 0; j < count; j++) {
-                    if (raw[i].val == raw[j].val) {
-                        matches[i]++;
-                    }
+            //match finding
+            for (int j = 0; j < count; j++) {
+                if (raw[i].val == raw[j].val) {
+                    matches[i]++;
                 }
+            }
 
-                //straight checking
-                if (i + 4 < count) {
-                    int index = raw[i].val;
-                    int straightCount = 1;
-                    straightIndex[i] = true;
-                    for (int j = i; j < count; j++) {
-                        if (raw[j].val == index - 1) {
-                            straightIndex[j] = true;
-                            index--;
-                            straightCount++;
-                        } else if (raw[j].val == index) {
-                            straightIndex[j] = true;
-                        }
+            //straight checking
+            if (!hasStraight && i + 4 < count) {
+                int index = raw[i].val;
+                int straightCount = 1;
+                straightIndex[i] = true;
+                for (int j = i; j < count; j++) {
+                    if (raw[j].val == index - 1) {
+                        straightIndex[j] = true;
+                        index--;
+                        straightCount++;
+                    } else if (raw[j].val == index) {
+                        straightIndex[j] = true;
                     }
                     if (straightCount >= 5) {
                         hasStraight = true;
-                    }
-                    if (!hasStraight) {
-                        straightIndex = new boolean[count];
+                        break;
                     }
                 }
-
-                if (raw[i].val == 14)
-                    wheelCrt[4] = true;
-                if (raw[i].val == 5)
-                    wheelCrt[0] = true;
-                if (raw[i].val == 4)
-                    wheelCrt[1] = true;
-                if (raw[i].val == 3)
-                    wheelCrt[2] = true;
-                if (raw[i].val == 2)
-                    wheelCrt[3] = true;
+                if (!hasStraight) {
+                    straightIndex = new boolean[count];
+                }
             }
-            wheel = true;
-            for (int i = 0; i < 5; i++) {
-                if (!wheelCrt[i]) {
-                    wheel = false;
-                    break;
+
+            if (raw[i].val == 14)
+                wheelCrt[4] = true;
+            if (raw[i].val == 5)
+                wheelCrt[0] = true;
+            if (raw[i].val == 4)
+                wheelCrt[1] = true;
+            if (raw[i].val == 3)
+                wheelCrt[2] = true;
+            if (raw[i].val == 2)
+                wheelCrt[3] = true;
+        }
+        wheel = true;
+        for (int i = 0; i < 5; i++) {
+            if (!wheelCrt[i]) {
+                wheel = false;
+                break;
+            }
+        }
+        if (wheel) {
+            hasStraight = true;
+            for (int i = 0; i < count; i++) {
+                if (raw[i].val < 6 || raw[i].val == 14)
+                    straightIndex[i] = true;
+            }
+        }
+
+
+        /* COMPUTE BEST STRENGTH */
+        int strength = 0;
+
+        int numFours = 0;
+        int numThrees = 0;
+        int numTwos = 0;
+        for (int i = 0; i < count; i++) {
+            if (matches[i] == 4)
+                numFours++;
+            if (matches[i] == 3)
+                numThrees++;
+            if (matches[i] == 2)
+                numTwos++;
+        }
+        //pair
+        if (numTwos > 1) strength = 1;
+        //two pair
+        if (numTwos > 2) strength = 2;
+        //trips
+        if (numThrees > 0) strength = 3;
+        //straight
+        if (hasStraight) strength = 4;
+        //flush
+        if (hasFlush) strength = 5;
+        //full house
+        if (numThrees > 0 && numTwos > 1) strength = 6;
+        //quads
+        if (numFours > 0) strength = 7;
+        //straight flush
+        if (hasStraight && hasFlush) {
+            int SFcount = 0;
+            int index = 0;
+            for (int j = 0; j < count - 4; j++) {
+                for (int i = j; i < count; i++) {
+                    if (straightIndex[i] && flushIndex[i]) {
+                        if (index == 0) {
+                            index = raw[i].val;
+                            SFcount++;
+                        } else if (raw[i].val == index - 1) {
+                            SFcount++;
+                            index--;
+                        }
+                    }
                 }
+            }
+            if (SFcount >= 5) {
+                strength = 8;
+                if (raw[0].val == 14 && straightIndex[0] && flushIndex[0]
+                        || raw[1].val == 14 && straightIndex[1] && flushIndex[1]
+                        || raw[2].val == 14 && straightIndex[2] && flushIndex[2])
+                    strength = 9;
             }
             if (wheel) {
-                hasStraight = true;
+                SFcount = 0;
                 for (int i = 0; i < count; i++) {
                     if (raw[i].val < 6 || raw[i].val == 14)
-                        straightIndex[i] = true;
+                        if (straightIndex[i] && flushIndex[i])
+                            SFcount++;
+                }
+
+                if (SFcount >= 5) {
+                    strength = 8;
                 }
             }
+        }
 
+        LinkedList<Card> rawList = new LinkedList<>(Arrays.asList(raw));
+        Card[] toReturn = new Card[7];
+        /* COMPUTE FINAL BEST HAND */
+        switch (strength) {
+            case 0:
+                toReturn = raw;
+                break;
+            case 1:
+                for (int i = 0; i < count; i++) {
+                    if (matches[i] == 2) {
+                        Card x = rawList.get(i);
+                        rawList.remove(i);
+                        rawList.addFirst(x);
+                    }
+                }
+                toReturn = rawList.toArray(new Card[]{});
+                break;
+            case 2:
+                int highestPair = 0;
+                int highestPairIndex = -1;
+                int otherPair = 0;
+                for (int i = 0; i < count; i++) {
+                    if (matches[i] == 2) {
+                        if (highestPair < raw[i].val) {
+                            otherPair = highestPair;
+                            highestPair = raw[i].val;
+                            highestPairIndex = i;
+                            i = 0;
+                        } else {
+                            otherPair = raw[i].val;
+                        }
 
-            /* COMPUTE BEST STRENGTH */
-            int strength = 0;
+                    }
+                }
+                //todo, replace all (get, remove, add) three-liners with add(remove()) calls
 
-            int numFours = 0;
-            int numThrees = 0;
-            int numTwos = 0;
-            for (int i = 0; i < count; i++) {
-                if (matches[i] == 4)
-                    numFours++;
-                if (matches[i] == 3)
-                    numThrees++;
-                if (matches[i] == 2)
-                    numTwos++;
-            }
-            //pair
-            if (numTwos > 1) strength = 1;
-            //two pair
-            if (numTwos > 2) strength = 2;
-            //trips
-            if (numThrees > 0) strength = 3;
-            //straight
-            if (hasStraight) strength = 4;
-            //flush
-            if (hasFlush) strength = 5;
-            //full house
-            if (numThrees > 0 && numTwos > 1) strength = 6;
-            //quads
-            if (numFours > 0) strength = 7;
-            //straight flush
-            if (hasStraight) {
-                int SFcount = 0;
+                Card x = rawList.get(highestPairIndex);
+                rawList.remove(highestPairIndex);
+                rawList.addFirst(x);
+                boolean foundHighestPair = false;
+                for (int i = 1; i < count; i++) {
+                    if (rawList.get(i).val == highestPair) {
+                        Card y = rawList.get(i);
+                        rawList.remove(i);
+                        rawList.add(1, y);
+                        i = 1;
+                        foundHighestPair = true;
+                    } else if (foundHighestPair && rawList.get(i).val == otherPair) {
+                        Card y = rawList.get(i);
+                        rawList.remove(i);
+                        rawList.add(2, y);
+                    }
+                };
+                toReturn = rawList.toArray(new Card[]{});
+                break;
+            case 3:
+                for (int i = 0; i < count; i++) {
+                    if (matches[i] == 3) {
+                        Card y = rawList.get(i);
+                        rawList.remove(i);
+                        rawList.addFirst(y);
+                    }
+                }
+                toReturn = rawList.toArray(new Card[]{});
+                break;
+            case 4:
+                LinkedList<Card> straightList = new LinkedList<>();
                 int index = 0;
-                for (int j = 0; j < count - 4; j++) {
-                    for (int i = j; i < count; i++) {
-                        if (straightIndex[i] && flushIndex[i]) {
+                if (!wheel) {
+                    for (int i = 0; i < rawList.size(); i++) {
+                        if (straightIndex[i]) {
                             if (index == 0) {
                                 index = raw[i].val;
-                                SFcount++;
+                                straightList.add(raw[i]);
                             } else if (raw[i].val == index - 1) {
-                                SFcount++;
+                                straightList.add(raw[i]);
                                 index--;
                             }
                         }
                     }
-                }
-                if (SFcount >= 5) {
-                    strength = 8;
-                    if (raw[0].val == 14 && straightIndex[0] && flushIndex[0]
-                            || raw[1].val == 14 && straightIndex[1] && flushIndex[1]
-                            || raw[2].val == 14 && straightIndex[2] && flushIndex[2])
-                        strength = 9;
-                }
-                if (wheel) {
-                    SFcount = 0;
+                } else {
                     for (int i = 0; i < count; i++) {
-                        if (raw[i].val < 6 || raw[i].val == 14)
-                            if (straightIndex[i] && flushIndex[i])
-                                SFcount++;
-                    }
-
-                    if (SFcount >= 5) {
-                        strength = 8;
-                    }
-                }
-            }
-
-            LinkedList<Card> rawList = new LinkedList<>(Arrays.asList(raw));
-            /* COMPUTE FINAL BEST HAND */
-            switch (strength) {
-                case 0:
-                    toReturn = raw;
-                    break;
-                case 1:
-                    for (int i = 0; i < count; i++) {
-                        if (matches[i] == 2) {
-                            Card x = rawList.get(i);
-                            rawList.remove(i);
-                            rawList.addFirst(x);
-                        }
-                    }
-                    toReturn = rawList.toArray(new Card[]{});
-                    break;
-                case 2:
-                    int highestPair = 0;
-                    int highestPairIndex = -1;
-                    int otherPair = 0;
-                    for (int i = 0; i < count; i++) {
-                        if (matches[i] == 2) {
-                            if (highestPair < raw[i].val) {
-                                otherPair = highestPair;
-                                highestPair = raw[i].val;
-                                highestPairIndex = i;
-                                i = 0;
+                        if (straightIndex[i] && raw[i].val != 14) {
+                            if (index == 0) {
+                                index = raw[i].val;
+                                straightList.add(raw[i]);
+                            } else if (raw[i].val == index - 1) {
+                                straightList.add(raw[i]);
+                                index--;
                             }
                         }
                     }
-                    Card x = rawList.get(highestPairIndex);
-                    rawList.remove(highestPairIndex);
-                    rawList.addFirst(x);
-                    boolean foundHighestPair = false;
-                    for (int i = 1; i < count; i++) {
-                        if (rawList.get(i).val == highestPair) {
-                            Card y = rawList.get(i);
-                            rawList.remove(i);
-                            rawList.add(1, y);
-                            i = 2;
-                            foundHighestPair = true;
-                        } else if (foundHighestPair && rawList.get(i).val == otherPair) {
-                            Card y = rawList.get(i);
-                            rawList.remove(i);
-                            rawList.add(2, y);
-                        }
-                    }
-                    toReturn = rawList.toArray(new Card[]{});
-                    break;
-                case 3:
-                    for (int i = 0; i < count; i++) {
-                        if (matches[i] == 3) {
-                            Card y = rawList.get(i);
-                            rawList.remove(i);
-                            rawList.addFirst(y);
-                        }
-                    }
-                    toReturn = rawList.toArray(new Card[]{});
-                    break;
-                case 4:
-                    LinkedList<Card> straightList = new LinkedList<>();
-                    int index = 0;
-                    if (!wheel) {
-                        for (int i = 0; i < rawList.size(); i++) {
-                            if (straightIndex[i]) {
-                                if (index == 0) {
-                                    index = raw[i].val;
-                                    straightList.add(raw[i]);
-                                } else if (raw[i].val == index - 1) {
-                                    straightList.add(raw[i]);
-                                    index--;
-                                }
-                            }
-                        }
-                    } else {
+                    if (straightList.size() != 5) {
                         for (int i = 0; i < count; i++) {
-                            if (straightIndex[i] && raw[i].val != 14) {
-                                if (index == 0) {
-                                    index = raw[i].val;
-                                    straightList.add(raw[i]);
-                                } else if (raw[i].val == index - 1) {
-                                    straightList.add(raw[i]);
-                                    index--;
-                                }
+                            if (straightIndex[i] && raw[i].val == 14) {
+                                straightList.add(raw[i]);
+                                break;
                             }
                         }
-                        if (straightList.size() != 5) {
-                            for (int i = 0; i < count; i++) {
-                                if (straightIndex[i] && raw[i].val == 14) {
-                                    straightList.add(raw[i]);
+                    }
+                }
+                toReturn = straightList.toArray(new Card[]{});
+                break;
+            case 8:
+            case 9:
+                LinkedList<Card> straightFlushList = new LinkedList<>();
+                int index2 = 0;
+                if (!wheel) {
+                    for (int i = 0; i < rawList.size(); i++) {
+                        if (straightIndex[i] && flushIndex[i]) {
+                            if (index2 == 0) {
+                                index2 = raw[i].val;
+                                straightFlushList.add(raw[i]);
+                            } else if (raw[i].val == index2 - 1) {
+                                straightFlushList.add(raw[i]);
+                                index2--;
+                            }
+                        }
+                    }
+                } else {
+                    for (int i = 0; i < count; i++) {
+                        if (straightIndex[i] && flushIndex[i] && raw[i].val != 14) {
+                            if (index2 == 0) {
+                                index2 = raw[i].val;
+                                straightFlushList.add(raw[i]);
+                            } else if (raw[i].val == index2 - 1) {
+                                straightFlushList.add(raw[i]);
+                                index2--;
+                            }
+                        }
+                    }
+                    if (straightFlushList.size() != 5) {
+                        for (int i = 0; i < count; i++) {
+                            if (straightIndex[i] && raw[i].val == 14) {
+                                straightFlushList.add(raw[i]);
+                                break;
+                            }
+                        }
+                    }
+                }
+                toReturn = straightFlushList.toArray(new Card[]{});
+                break;
+            case 5:
+                LinkedList<Card> flushList = new LinkedList<>();
+                for (int i = 0; i < count; i++) {
+                    if (flushIndex[i]) {
+                        boolean added = false;
+                        if (flushList.size() == 0) flushList.add(raw[i]);
+                        else {
+                            for (int j = 0; j < flushList.size(); j++) {
+                                if (raw[i].val > flushList.get(j).val) {
+                                    flushList.add(j, raw[i]);
+                                    added = true;
                                     break;
                                 }
                             }
+                            if (!added) flushList.add(raw[i]);
                         }
                     }
-                    toReturn = straightList.toArray(new Card[]{});
-                    break;
-                case 8:
-                case 9:
-                    LinkedList<Card> straightFlushList = new LinkedList<>();
-                    int index2 = 0;
-                    if (!wheel) {
-                        for (int i = 0; i < rawList.size(); i++) {
-                            if (straightIndex[i] && flushIndex[i]) {
-                                if (index2 == 0) {
-                                    index2 = raw[i].val;
-                                    straightFlushList.add(raw[i]);
-                                } else if (raw[i].val == index2 - 1) {
-                                    straightFlushList.add(raw[i]);
-                                    index2--;
-                                }
-                            }
-                        }
-                    } else {
-                        for (int i = 0; i < count; i++) {
-                            if (straightIndex[i] && flushIndex[i] && raw[i].val != 14) {
-                                if (index2 == 0) {
-                                    index2 = raw[i].val;
-                                    straightFlushList.add(raw[i]);
-                                } else if (raw[i].val == index2 - 1) {
-                                    straightFlushList.add(raw[i]);
-                                    index2--;
-                                }
-                            }
-                        }
-                        if (straightFlushList.size() != 5) {
-                            for (int i = 0; i < count; i++) {
-                                if (straightIndex[i] && raw[i].val == 14) {
-                                    straightFlushList.add(raw[i]);
-                                    break;
-                                }
-                            }
-                        }
+                }
+                toReturn = flushList.toArray(new Card[]{});
+                break;
+            case 6:
+                for (int i = 0; i < count; i++) {
+                    if (matches[i] == 3) {
+                        Card y = rawList.get(i);
+                        rawList.remove(i);
+                        rawList.addFirst(y);
                     }
-                    toReturn = straightFlushList.toArray(new Card[]{});
-                    break;
-                case 5:
-                    LinkedList<Card> flushList = new LinkedList<>();
-                    for (int i = 0; i < count; i++) {
-                        if (flushIndex[i]) {
-                            boolean added = false;
-                            if (flushList.size() == 0) flushList.add(raw[i]);
-                            else {
-                                for (int j = 0; j < flushList.size(); j++) {
-                                    if (raw[i].val > flushList.get(j).val) {
-                                        flushList.add(j, raw[i]);
-                                        added = true;
-                                        break;
-                                    }
-                                }
-                                if (!added) flushList.add(raw[i]);
-                            }
-                        }
+                }
+                for (int i = 0; i < count; i++) {
+                    if (matches[i] == 2) {
+                        Card z = raw[i];
+                        rawList.remove(z);
+                        rawList.add(3, z);
                     }
-                    toReturn = flushList.toArray(new Card[]{});
-                    break;
-                case 6:
-                    for (int i = 0; i < count; i++) {
-                        if (matches[i] == 3) {
-                            Card y = rawList.get(i);
-                            rawList.remove(i);
-                            rawList.addFirst(y);
-                        }
+                }
+                toReturn = rawList.toArray(new Card[]{});
+                break;
+            case 7:
+                for (int i = 0; i < count; i++) {
+                    if (matches[i] == 4) {
+                        Card y = rawList.get(i);
+                        rawList.remove(i);
+                        rawList.addFirst(y);
                     }
-                    for (int i = 0; i < count; i++) {
-                        if (matches[i] == 2) {
-                            Card z = raw[i];
-                            rawList.remove(z);
-                            rawList.add(3, z);
-                        }
-                    }
-                    toReturn = rawList.toArray(new Card[]{});
-                    break;
-                case 7:
-                    for (int i = 0; i < count; i++) {
-                        if (matches[i] == 4) {
-                            Card y = rawList.get(i);
-                            rawList.remove(i);
-                            rawList.addFirst(y);
-                        }
-                    }
-                    toReturn = rawList.toArray(new Card[]{});
-                    break;
+                }
+                toReturn = rawList.toArray(new Card[]{});
+                break;
+        }
+
+
+        return Arrays.copyOf(toReturn, 5);
+    }
+
+    public Card[] bestHand(Card[] board) {
+        Card[] toReturn = new Card[7];
+        if (board[0] == null) {
+            return Arrays.copyOf(holeCards, 2);
+        } else {
+            //hand rankings
+            int count = 0;
+            for (Card c : board) {
+                if (c != null)
+                    count++;
             }
+            Card[] raw = new Card[count];
+            for (int i = 0; i < count - (0); i++) {
+                if (board[i] != null)
+                    raw[i + (0)] = board[i];
+            }
+            Arrays.sort(raw);
+
+            return bestHandHelper(raw, count);
 
         }
-        return Arrays.copyOf(toReturn, 5);
     } // bestHand
 
-    // Overloaded method that accepts custom holeCards
+    // Overloaded method that accepts holeCards
     public Card[] bestHand(Card[] board, Card[] difHoleCards) {
-        Card[] toReturn = new Card[7];
         if (board[0] == null) {
             return Arrays.copyOf(difHoleCards, 2);
         } else {
@@ -524,347 +530,18 @@ public abstract class PokerPlayer {
                     count++;
             }
             Card[] raw = new Card[count];
-                raw[0] = difHoleCards[0];
-                raw[1] = difHoleCards[1];
+            raw[0] = difHoleCards[0];
+            raw[1] = difHoleCards[1];
             for (int i = 0; i < count - 2; i++) {
                 if (board[i] != null)
                     raw[i + 2] = board[i];
             }
             Arrays.sort(raw);
 
+            return bestHandHelper(raw, count);
 
-            /* COMPUTE METRICS */
-            int[] matches = new int[count];
-            int[] suits = new int[4];
-            boolean hasStraight = false;
-            boolean hasFlush = false;
-            //int flushSuit = -1;
-            boolean[] straightIndex = new boolean[count];
-            boolean[] flushIndex = new boolean[count];
-            boolean[] wheelCrt = new boolean[5];
-            boolean wheel;
-            for (int i = 0; i < count; i++) {
-                //suit tallying
-                suits[raw[i].suit - 1]++;
-                if (suits[raw[i].suit - 1] >= 5) {
-                    //flushSuit = raw[i].suit;
-                    hasFlush = true;
-                    for (int j = 0; j < count; j++) {
-                        if (raw[j].suit == raw[i].suit) {
-                            flushIndex[j] = true;
-                        }
-                    }
-                }
-
-                //match finding
-                for (int j = 0; j < count; j++) {
-                    if (raw[i].val == raw[j].val) {
-                        matches[i]++;
-                    }
-                }
-
-                //straight checking
-                if (i + 4 < count) {
-                    int index = raw[i].val;
-                    int straightCount = 1;
-                    straightIndex[i] = true;
-                    for (int j = i; j < count; j++) {
-                        if (raw[j].val == index - 1) {
-                            straightIndex[j] = true;
-                            index--;
-                            straightCount++;
-                        } else if (raw[j].val == index) {
-                            straightIndex[j] = true;
-                        }
-                    }
-                    if (straightCount >= 5) {
-                        hasStraight = true;
-                    }
-                    if (!hasStraight) {
-                        straightIndex = new boolean[count];
-                    }
-                }
-
-                if (raw[i].val == 14)
-                    wheelCrt[4] = true;
-                if (raw[i].val == 5)
-                    wheelCrt[0] = true;
-                if (raw[i].val == 4)
-                    wheelCrt[1] = true;
-                if (raw[i].val == 3)
-                    wheelCrt[2] = true;
-                if (raw[i].val == 2)
-                    wheelCrt[3] = true;
-            }
-            wheel = true;
-            for (int i = 0; i < 5; i++) {
-                if (!wheelCrt[i]) {
-                    wheel = false;
-                    break;
-                }
-            }
-            if (wheel) {
-                hasStraight = true;
-                for (int i = 0; i < count; i++) {
-                    if (raw[i].val < 6 || raw[i].val == 14)
-                        straightIndex[i] = true;
-                }
-            }
-
-
-            /* COMPUTE BEST STRENGTH */
-            int strength = 0;
-
-            int numFours = 0;
-            int numThrees = 0;
-            int numTwos = 0;
-            for (int i = 0; i < count; i++) {
-                if (matches[i] == 4)
-                    numFours++;
-                if (matches[i] == 3)
-                    numThrees++;
-                if (matches[i] == 2)
-                    numTwos++;
-            }
-            //pair
-            if (numTwos > 1) strength = 1;
-            //two pair
-            if (numTwos > 2) strength = 2;
-            //trips
-            if (numThrees > 0) strength = 3;
-            //straight
-            if (hasStraight) strength = 4;
-            //flush
-            if (hasFlush) strength = 5;
-            //full house
-            if (numThrees > 0 && numTwos > 1) strength = 6;
-            //quads
-            if (numFours > 0) strength = 7;
-            //straight flush
-            if (hasStraight) {
-                int SFcount = 0;
-                int index = 0;
-                for (int j = 0; j < count - 4; j++) {
-                    for (int i = j; i < count; i++) {
-                        if (straightIndex[i] && flushIndex[i]) {
-                            if (index == 0) {
-                                index = raw[i].val;
-                                SFcount++;
-                            } else if (raw[i].val == index - 1) {
-                                SFcount++;
-                                index--;
-                            }
-                        }
-                    }
-                }
-                if (SFcount >= 5) {
-                    strength = 8;
-                    if (raw[0].val == 14 && straightIndex[0] && flushIndex[0]
-                            || raw[1].val == 14 && straightIndex[1] && flushIndex[1]
-                            || raw[2].val == 14 && straightIndex[2] && flushIndex[2])
-                        strength = 9;
-                }
-                if (wheel) {
-                    SFcount = 0;
-                    for (int i = 0; i < count; i++) {
-                        if (raw[i].val < 6 || raw[i].val == 14)
-                            if (straightIndex[i] && flushIndex[i])
-                                SFcount++;
-                    }
-
-                    if (SFcount >= 5) {
-                        strength = 8;
-                    }
-                }
-            }
-
-            LinkedList<Card> rawList = new LinkedList<>(Arrays.asList(raw));
-            /* COMPUTE FINAL BEST HAND */
-            switch (strength) {
-                case 0:
-                    toReturn = raw;
-                    break;
-                case 1:
-                    for (int i = 0; i < count; i++) {
-                        if (matches[i] == 2) {
-                            Card x = rawList.get(i);
-                            rawList.remove(i);
-                            rawList.addFirst(x);
-                        }
-                    }
-                    toReturn = rawList.toArray(new Card[]{});
-                    break;
-                case 2:
-                    int highestPair = 0;
-                    int highestPairIndex = -1;
-                    int otherPair = 0;
-                    for (int i = 0; i < count; i++) {
-                        if (matches[i] == 2) {
-                            if (highestPair < raw[i].val) {
-                                otherPair = highestPair;
-                                highestPair = raw[i].val;
-                                highestPairIndex = i;
-                                i = 0;
-                            }
-                        }
-                    }
-                    Card x = rawList.get(highestPairIndex);
-                    rawList.remove(highestPairIndex);
-                    rawList.addFirst(x);
-                    boolean foundHighestPair = false;
-                    for (int i = 1; i < count; i++) {
-                        if (rawList.get(i).val == highestPair) {
-                            Card y = rawList.get(i);
-                            rawList.remove(i);
-                            rawList.add(1, y);
-                            i = 2;
-                            foundHighestPair = true;
-                        } else if (foundHighestPair && rawList.get(i).val == otherPair) {
-                            Card y = rawList.get(i);
-                            rawList.remove(i);
-                            rawList.add(2, y);
-                        }
-                    }
-                    toReturn = rawList.toArray(new Card[]{});
-                    break;
-                case 3:
-                    for (int i = 0; i < count; i++) {
-                        if (matches[i] == 3) {
-                            Card y = rawList.get(i);
-                            rawList.remove(i);
-                            rawList.addFirst(y);
-                        }
-                    }
-                    toReturn = rawList.toArray(new Card[]{});
-                    break;
-                case 4:
-                    LinkedList<Card> straightList = new LinkedList<>();
-                    int index = 0;
-                    if (!wheel) {
-                        for (int i = 0; i < rawList.size(); i++) {
-                            if (straightIndex[i]) {
-                                if (index == 0) {
-                                    index = raw[i].val;
-                                    straightList.add(raw[i]);
-                                } else if (raw[i].val == index - 1) {
-                                    straightList.add(raw[i]);
-                                    index--;
-                                }
-                            }
-                        }
-                    } else {
-                        for (int i = 0; i < count; i++) {
-                            if (straightIndex[i] && raw[i].val != 14) {
-                                if (index == 0) {
-                                    index = raw[i].val;
-                                    straightList.add(raw[i]);
-                                } else if (raw[i].val == index - 1) {
-                                    straightList.add(raw[i]);
-                                    index--;
-                                }
-                            }
-                        }
-                        if (straightList.size() != 5) {
-                            for (int i = 0; i < count; i++) {
-                                if (straightIndex[i] && raw[i].val == 14) {
-                                    straightList.add(raw[i]);
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                    toReturn = straightList.toArray(new Card[]{});
-                    break;
-                case 8:
-                case 9:
-                    LinkedList<Card> straightFlushList = new LinkedList<>();
-                    int index2 = 0;
-                    if (!wheel) {
-                        for (int i = 0; i < rawList.size(); i++) {
-                            if (straightIndex[i] && flushIndex[i]) {
-                                if (index2 == 0) {
-                                    index2 = raw[i].val;
-                                    straightFlushList.add(raw[i]);
-                                } else if (raw[i].val == index2 - 1) {
-                                    straightFlushList.add(raw[i]);
-                                    index2--;
-                                }
-                            }
-                        }
-                    } else {
-                        for (int i = 0; i < count; i++) {
-                            if (straightIndex[i] && flushIndex[i] && raw[i].val != 14) {
-                                if (index2 == 0) {
-                                    index2 = raw[i].val;
-                                    straightFlushList.add(raw[i]);
-                                } else if (raw[i].val == index2 - 1) {
-                                    straightFlushList.add(raw[i]);
-                                    index2--;
-                                }
-                            }
-                        }
-                        if (straightFlushList.size() != 5) {
-                            for (int i = 0; i < count; i++) {
-                                if (straightIndex[i] && raw[i].val == 14) {
-                                    straightFlushList.add(raw[i]);
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                    toReturn = straightFlushList.toArray(new Card[]{});
-                    break;
-                case 5:
-                    LinkedList<Card> flushList = new LinkedList<>();
-                    for (int i = 0; i < count; i++) {
-                        if (flushIndex[i]) {
-                            boolean added = false;
-                            if (flushList.size() == 0) flushList.add(raw[i]);
-                            else {
-                                for (int j = 0; j < flushList.size(); j++) {
-                                    if (raw[i].val > flushList.get(j).val) {
-                                        flushList.add(j, raw[i]);
-                                        added = true;
-                                        break;
-                                    }
-                                }
-                                if (!added) flushList.add(raw[i]);
-                            }
-                        }
-                    }
-                    toReturn = flushList.toArray(new Card[]{});
-                    break;
-                case 6:
-                    for (int i = 0; i < count; i++) {
-                        if (matches[i] == 3) {
-                            Card y = rawList.get(i);
-                            rawList.remove(i);
-                            rawList.addFirst(y);
-                        }
-                    }
-                    for (int i = 0; i < count; i++) {
-                        if (matches[i] == 2) {
-                            Card z = raw[i];
-                            rawList.remove(z);
-                            rawList.add(3, z);
-                        }
-                    }
-                    toReturn = rawList.toArray(new Card[]{});
-                    break;
-                case 7:
-                    for (int i = 0; i < count; i++) {
-                        if (matches[i] == 4) {
-                            Card y = rawList.get(i);
-                            rawList.remove(i);
-                            rawList.addFirst(y);
-                        }
-                    }
-                    toReturn = rawList.toArray(new Card[]{});
-                    break;
-            }
 
         }
-        return Arrays.copyOf(toReturn, 5);
     } // bestHand
 
 
@@ -884,7 +561,7 @@ public abstract class PokerPlayer {
     }
 
     //returns [countTheyWin,countWeChop,countIWin]
-    public int[] getEquity(int numPlayers, Card[] board2) {
+    public int[] getEquity(int numPlayers, Card[] board2, int smps) {
         Card[] board = new Card[5];
         for (int i = 0; i < 5; i++) {
             if (board2[i] == null) board[i] = null;
@@ -910,7 +587,7 @@ public abstract class PokerPlayer {
         Deck deck = new Deck(blacklist);
         //System.out.println(deck.mainDeck.toString());
         int[] counts = new int[3];
-        eqIterate(counts, eq, deck);
+        eqIterate(counts, eq, deck, smps);
 
 
         return counts;
@@ -935,9 +612,9 @@ public abstract class PokerPlayer {
         return res;
     }
 
-    private void eqIterate(int[] counts, Card[][] eq2, Deck deck2) {
+    private void eqIterate(int[] counts, Card[][] eq2, Deck deck2, int smps) {
         final boolean debug = false;
-        final long samples = 600000000;
+        final long samples = smps;
 
         int counter = 0;
         Card[][] eq = copyEq(eq2);
@@ -967,7 +644,7 @@ public abstract class PokerPlayer {
             for (List<Card> possibleHand : Generator.combination(boardAndHand).simple(2*(eq.length-2))) {
                 counter++;
                 if (!(counter % spreadVal == 0)) continue;
-                if (debug) System.out.println("current possibleHand list: " + possibleHand);
+                if (debug) System.out.println("current possibleHand: " + possibleHand);
                 int index = 0;
                 for (int i = 2; i < eq.length; i++) {
                     eq[i][0] = possibleHand.get(index).copyOf();
@@ -995,8 +672,15 @@ public abstract class PokerPlayer {
                     }
                 }
                 counts[outcome + 1]++;
-                if (debug) System.out.println(Arrays.toString(eq[1]) + Arrays.toString(eq[2]) + Arrays.toString(eq[0]) + outcome);
-                if (counts [0] + counts[1] + counts[2] > samples) return;
+                if (debug) {
+                    System.out.println(Arrays.toString(eq[1]) + Arrays.toString(eq[2]) + Arrays.toString(eq[0]) + outcome);
+                    System.out.println("str " + Arrays.toString(strength(bh1)) + Arrays.toString(bh1));
+                    Card[] bhb = bestHand(eq[0]);
+                    System.out.println("strb " + Arrays.toString(strength(bhb)) + Arrays.toString(bhb));
+                    Card[] bh2 = bestHand(eq[0], eq[2]);
+                    System.out.println("str2 " + Arrays.toString(strength(bh2)) + Arrays.toString(bh2));
+                }
+                //if (counts [0] + counts[1] + counts[2] > samples) return;
             }
         }
         System.out.println("returned normally");

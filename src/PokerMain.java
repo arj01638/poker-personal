@@ -143,7 +143,7 @@ public class PokerMain {
 					return 0;
 				} else {
 					if (strength(bh)[0] > 0
-							&& strength(bh)[0] > strength(bestHand(board, false))[0])
+							&& strength(bh)[0] > strength(bestHand(board))[0])
 						return Math.max(bank - betfacing, 0);
 						if (betfacing == 0)
 							return 0;
@@ -170,7 +170,7 @@ public class PokerMain {
 				} else {
 					int[] strength = strength(bh);
 					if (strength[0] > 0
-							&& strength[0] > strength(bestHand(board, false))[0]) {
+							&& strength[0] > strength(bestHand(board))[0]) {
 						if (betFacing == 0) return sanitizeBet(BB*(strength[0]+1));
 						return 0;
 					}
@@ -453,7 +453,7 @@ public class PokerMain {
 				}
 
 				bestHand = bh;
-				bestHandB = bestHand(board,false);
+				bestHandB = bestHand(board);
 
 				int[] strengthHand = strength(bestHand);
 				int[] strengthBoard = strength(bestHandB);
@@ -813,7 +813,7 @@ public class PokerMain {
 
 				for (PokerPlayer p : players) {
 					if (p.holeCards[0] != null) {
-						p.bh = p.bestHand(board, true);
+						p.bh = p.bestHand(board, p.holeCards);
 					} else {
 						p.bh = null;
 					}
@@ -835,7 +835,7 @@ public class PokerMain {
 					nextCard();
 					for (PokerPlayer p : players) {
 						if (p.holeCards[0] != null)
-							p.bh = p.bestHand(board, true);
+							p.bh = p.bestHand(board, p.holeCards);
 					}
 					nextCard = false;
 					for (Pot i : pots) {
@@ -1366,9 +1366,24 @@ public class PokerMain {
 
 	void unitTest() {
 		PokerPlayer pl = players.get(0);
-		pl.holeCards[0] = new Card(14,4);
-		pl.holeCards[1] = new Card(14,3);
-		System.out.println(Arrays.toString(pl.getEquity(2,new Card[5])));
+		pl.holeCards[0] = new Card(2,1);
+		pl.holeCards[1] = new Card(7,2);
+		/*Card[] board = new Card[5];
+		board[0] = new Card(13,4);
+		board[1] = new Card(4,4);
+		board[2] = new Card(6,3);
+		board[3] = new Card(6,4);
+		board[4] = new Card(13,3);
+		System.out.println(Arrays.toString(pl.bestHand(board, pl.holeCards)));
+		if (pl.bestHand(board, pl.holeCards)[4].val != 7) throw new RuntimeException("penis");*/
+
+
+
+
+		int samples = 200000000;
+		int[] arr = pl.getEquity(2,new Card[5], samples);
+		System.out.println(Arrays.toString(arr));
+		System.out.println(((double)arr[2]) / (double)(arr[0] + arr[1] + arr[2]));
 	}
 
 
