@@ -310,9 +310,7 @@ public abstract class PokerPlayer {
             case 1:
                 for (int i = 0; i < count; i++) {
                     if (matches[i] == 2) {
-                        Card x = rawList.get(i);
-                        rawList.remove(i);
-                        rawList.addFirst(x);
+                        rawList.addFirst(rawList.remove(i));
                     }
                 }
                 toReturn = rawList.toArray(new Card[]{});
@@ -336,21 +334,15 @@ public abstract class PokerPlayer {
                 }
                 //todo, replace all (get, remove, add) three-liners with add(remove()) calls
 
-                Card x = rawList.get(highestPairIndex);
-                rawList.remove(highestPairIndex);
-                rawList.addFirst(x);
+                rawList.addFirst(rawList.remove(highestPairIndex));
                 boolean foundHighestPair = false;
                 for (int i = 1; i < count; i++) {
                     if (rawList.get(i).val == highestPair) {
-                        Card y = rawList.get(i);
-                        rawList.remove(i);
-                        rawList.add(1, y);
+                        rawList.add(1, rawList.remove(i));
                         i = 1;
                         foundHighestPair = true;
                     } else if (foundHighestPair && rawList.get(i).val == otherPair) {
-                        Card y = rawList.get(i);
-                        rawList.remove(i);
-                        rawList.add(2, y);
+                        rawList.add(2, rawList.remove(i));
                     }
                 };
                 toReturn = rawList.toArray(new Card[]{});
@@ -358,9 +350,7 @@ public abstract class PokerPlayer {
             case 3:
                 for (int i = 0; i < count; i++) {
                     if (matches[i] == 3) {
-                        Card y = rawList.get(i);
-                        rawList.remove(i);
-                        rawList.addFirst(y);
+                        rawList.addFirst(rawList.remove(i));
                     }
                 }
                 toReturn = rawList.toArray(new Card[]{});
@@ -465,16 +455,12 @@ public abstract class PokerPlayer {
             case 6:
                 for (int i = 0; i < count; i++) {
                     if (matches[i] == 3) {
-                        Card y = rawList.get(i);
-                        rawList.remove(i);
-                        rawList.addFirst(y);
+                        rawList.addFirst(rawList.remove(i));
                     }
                 }
                 for (int i = 0; i < count; i++) {
                     if (matches[i] == 2) {
-                        Card z = raw[i];
-                        rawList.remove(z);
-                        rawList.add(3, z);
+                        rawList.add(3, rawList.remove(i));
                     }
                 }
                 toReturn = rawList.toArray(new Card[]{});
@@ -482,9 +468,7 @@ public abstract class PokerPlayer {
             case 7:
                 for (int i = 0; i < count; i++) {
                     if (matches[i] == 4) {
-                        Card y = rawList.get(i);
-                        rawList.remove(i);
-                        rawList.addFirst(y);
+                        rawList.addFirst(rawList.remove(i));
                     }
                 }
                 toReturn = rawList.toArray(new Card[]{});
