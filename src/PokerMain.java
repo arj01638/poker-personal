@@ -8,13 +8,13 @@ import java.util.concurrent.ThreadLocalRandom;
 public class PokerMain {
 
 
-	final int ROUNDS = 10;
+	final int ROUNDS = 100;
 	final boolean PRINT = true;
 	final boolean PRINT_MORE = false;
 	final int BB = 500;
 	final int SB = BB / 2;
 	final int STARTING_BANK = 90*BB;
-	final boolean TEST = true;
+	final boolean TEST = false;
 	final boolean CSV = false;
 	final boolean STOP_WHEN_LAST_PLAYER_WINS = false;
 	final int SLEEP = 0;
@@ -69,6 +69,7 @@ public class PokerMain {
 		addPlayer(true, "Val", new PokerPlayer(this) {
 			@Override
 			int evaluate() {
+				if (gameStage > 0 && parent.board[0] == null) throw new RuntimeException("penis");
 				if (getGameStage(board) == 0) return 0;
 				int[] strength = strength(bh);
 				int decision = (int) ((BB * Math.pow(((double)strength[0]+(double)strength[2]/14.0),2))/3.0);
@@ -80,11 +81,17 @@ public class PokerMain {
 		/*
 		 * Calculates
 		 */
-		addPlayer(false, "The Equator", new PokerPlayer(this) {
+		addPlayer(true, "The Equator", new PokerPlayer(this) {
 			@Override
 			int evaluate() {
-				//todo
-				return 0;
+				if (gameStage > 0 && parent.board[0] == null) throw new RuntimeException("penis");
+				double potOdds = getPotOdds();
+				int[] arr = getEquity(activePlayers().size(), parent.board, 1000);
+				double equity = ((double)arr[2]) / (double)(arr[0] + arr[1] + arr[2]);
+				qPrint(fullName() + ": equity is " + equity + " and potOdds is " + potOdds);
+				if (equity > potOdds)
+					return idealBet(equity);
+				else return -1;
 			}
 		});
 
@@ -94,21 +101,15 @@ public class PokerMain {
 		 * Else, makes random move.
 		 * After 50 hands, gets bored and bets progressively more while never folding.
 		 */
-		addPlayer(false, "Newbie", new PokerPlayer(this) {
+		addPlayer(true, "Newbie", new PokerPlayer(this) {
 			@Override
 			int evaluate() {
-				if (parent.hand > 50) return sanitizeBet(BB*((parent.hand-50)/5));
+				if (parent.hand > 50) return sanitizeBet((BB*((parent.hand-50))/5));
 				int decision = (BB/5)*ThreadLocalRandom.current().nextInt(-1, 10);
 				int betfacing = getBet();
 				if (betfacing >= bank)
 					return ThreadLocalRandom.current().nextInt(-1,1);
-				if (decision - (betfacing/2) > 0 && decision - (betfacing/2) < betfacing)
-					return 0;
-				if (decision - (betfacing/2) <= 0)
-					return -1;
-				if (decision + betfacing < BB)
-					return BB - betfacing;
-				return decision;
+				return sanitizeBet(decision);
 			}
 		}); // RandomDecisionMaker
 
@@ -168,7 +169,8 @@ public class PokerMain {
 						return 0;
 					} else { return -1; }
 				} else {
-					int[] strength = strength(bh);
+					return 0;
+					/*int[] strength = strength(bh);
 					if (strength[0] > 0
 							&& strength[0] > strength(bestHand(board))[0]) {
 						if (betFacing == 0) return sanitizeBet(BB*(strength[0]+1));
@@ -176,7 +178,7 @@ public class PokerMain {
 					}
 					if (betFacing == 0)
 						return 0;
-					return -1;
+					return -1;*/
 				}
 			}
 		});
@@ -1059,7 +1061,6 @@ public class PokerMain {
 				}
 			}
 		} else {
-			qPrint("e");
 			int counter = winners.size();
 			for(PokerPlayer p : winners) {
 				if (PRINT)
@@ -1170,9 +1171,8 @@ public class PokerMain {
 					throw new RuntimeException("bet + eval > bank + globalFrontMoney");
 				if (current.bank < 0)
 					throw new RuntimeException("bank < 0");
-				if (!(evaluation == 0) && bet + evaluation < BB && forceEval != SB && !(bet + evaluation == current.bank + globalFrontMoney)) {
+				if (!(evaluation == 0) && bet + evaluation < BB && forceEval != SB && !(bet + evaluation == current.bank + globalFrontMoney))
 					throw new RuntimeException("bet < BB");
-				}
 
 				int frontMoney = 0;
 				pots.getFirst().bet += evaluation;
@@ -1366,25 +1366,22 @@ public class PokerMain {
 
 	void unitTest() {
 		PokerPlayer pl = players.get(0);
-		pl.holeCards[0] = new Card(14,1);
-		pl.holeCards[1] = new Card(14,2);
-		/*pl.holeCards[0] = new Card(4,1);
-		pl.holeCards[1] = new Card(14,2);
-		Card[] board = new Card[5];
-		board[0] = new Card(3,1);
-		board[1] = new Card(3,2);
-		board[2] = new Card(11,2);
-		board[3] = new Card(3,3);
-		board[4] = new Card(11,4);
-		System.out.println(Arrays.toString(pl.bestHand(board, pl.holeCards)));
-		if (pl.bestHand(board, pl.holeCards)[3].val != 11) throw new RuntimeException("penis");*/
+		pl.holeCards[0] = new Card(14,4);
+		pl.holeCards[1] = new Card(4,4);
+		/*Card[] board = new Card[5];
+		board[0] = new Card(3,4);
+		board[1] = new Card(2,4);
+		board[2] = new Card(6,2);
+		board[3] = new Card(7,4);
+		board[4] = new Card(5,4);
+		System.out.println("SF wheel:" + Arrays.toString(pl.bestHand(board, pl.holeCards)));*/
 
 
-
-		int samples = 10000;
-		int[] arr = pl.getEquity(2,new Card[5], samples);
+		/*int samples = 10000;
+		int[] arr = pl.getEquity(3,new Card[5], samples);
 		System.out.println(Arrays.toString(arr));
-		System.out.println(((double)arr[2]) / (double)(arr[0] + arr[1] + arr[2]) + "|" + (arr[0] + arr[1] + arr[2]));
+		System.out.println(((double)arr[2]) / (double)(arr[0] + arr[1] + arr[2]) + "|" + (arr[0] + arr[1] + arr[2]));*/
+		System.out.println("Done testing!");
 	}
 
 

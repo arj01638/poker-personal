@@ -1,8 +1,5 @@
-import java.math.BigInteger;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
-import java.util.List;
 
 public abstract class PokerPlayer {
 
@@ -160,8 +157,6 @@ public abstract class PokerPlayer {
         //int flushSuit = -1;
         boolean[] straightIndex = new boolean[count];
         boolean[] flushIndex = new boolean[count];
-        boolean[] wheelCrt = new boolean[5];
-        boolean wheel;
         for (int i = 0; i < count; i++) {
             //suit tallying
             if (!hasFlush) {
@@ -184,7 +179,7 @@ public abstract class PokerPlayer {
             }
 
             //straight checking
-            if (!hasStraight && i + 4 < count) {
+            if (!hasStraight && i + 3 < count) {
                 int index = raw[i].val;
                 int straightCount = 1;
                 straightIndex[i] = true;
@@ -196,42 +191,23 @@ public abstract class PokerPlayer {
                     } else if (raw[j].val == index) {
                         straightIndex[j] = true;
                     }
+                    if (index == 2) {
+                        for (int k = 0; k < count; k++) {
+                            if (raw[k].val == 14) {
+                                straightIndex[k] = true;
+                                straightCount++;
+                            }
+                        }
+                    }
                     if (straightCount >= 5) {
                         hasStraight = true;
-                        break;
                     }
                 }
                 if (!hasStraight) {
                     straightIndex = new boolean[count];
                 }
             }
-
-            if (raw[i].val == 14)
-                wheelCrt[4] = true;
-            if (raw[i].val == 5)
-                wheelCrt[0] = true;
-            if (raw[i].val == 4)
-                wheelCrt[1] = true;
-            if (raw[i].val == 3)
-                wheelCrt[2] = true;
-            if (raw[i].val == 2)
-                wheelCrt[3] = true;
         }
-        wheel = true;
-        for (int i = 0; i < 5; i++) {
-            if (!wheelCrt[i]) {
-                wheel = false;
-                break;
-            }
-        }
-        if (wheel) {
-            hasStraight = true;
-            for (int i = 0; i < count; i++) {
-                if (raw[i].val < 6 || raw[i].val == 14)
-                    straightIndex[i] = true;
-            }
-        }
-
 
         /* COMPUTE BEST STRENGTH */
         int strength = 0;
@@ -239,6 +215,7 @@ public abstract class PokerPlayer {
         int numFours = 0;
         int numThrees = 0;
         int numTwos = 0;
+        boolean SFindex[] = new boolean[count];
         for (int i = 0; i < count; i++) {
             if (matches[i] == 4)
                 numFours++;
@@ -264,38 +241,34 @@ public abstract class PokerPlayer {
         //straight flush
         if (hasStraight && hasFlush) {
             int SFcount = 0;
-            int index = 0;
-            for (int j = 0; j < count - 4; j++) {
+            //System.out.println(Arrays.toString(raw));
+            for (int j = 0; j < count - 3; j++) {
+                if (!(straightIndex[j] && flushIndex[j])) continue;
+                SFcount = 1;
+                int index = raw[j].val;
+                SFindex[j] = true;
                 for (int i = j; i < count; i++) {
                     if (straightIndex[i] && flushIndex[i]) {
-                        if (index == 0) {
-                            index = raw[i].val;
-                            SFcount++;
-                        } else if (raw[i].val == index - 1) {
+                        if (raw[i].val == index - 1) {
                             SFcount++;
                             index--;
+                            SFindex[i] = true;
+                        }
+                    }
+                    if (index == 2) {
+                        for (int k = 0; k < count; k++) {
+                            if (raw[k].val == 14 && straightIndex[k] && flushIndex[k]) {
+                                SFcount++;
+                                SFindex[k] = true;
+                            }
                         }
                     }
                 }
-            }
-            if (SFcount >= 5) {
-                strength = 8;
-                if (raw[0].val == 14 && straightIndex[0] && flushIndex[0]
-                        || raw[1].val == 14 && straightIndex[1] && flushIndex[1]
-                        || raw[2].val == 14 && straightIndex[2] && flushIndex[2])
-                    strength = 9;
-            }
-            if (wheel) {
-                SFcount = 0;
-                for (int i = 0; i < count; i++) {
-                    if (raw[i].val < 6 || raw[i].val == 14)
-                        if (straightIndex[i] && flushIndex[i])
-                            SFcount++;
-                }
-
+                //System.out.println(SFcount);
                 if (SFcount >= 5) {
                     strength = 8;
                 }
+                if (strength != 8) SFindex = new boolean[count];
             }
         }
 
@@ -333,7 +306,8 @@ public abstract class PokerPlayer {
                     } else if (rawList.get(i).val == otherPair) {
                         rawList.add(2, rawList.remove(i));
                     }
-                };
+                }
+                ;
                 toReturn = rawList.toArray(new Card[]{});
                 break;
             case 3:
@@ -353,7 +327,22 @@ public abstract class PokerPlayer {
             case 4:
                 LinkedList<Card> straightList = new LinkedList<>();
                 int index = 0;
-                if (!wheel) {
+
+
+                boolean hasWheel = false;
+                int highestStr = 0;
+                int secondHighestStr = 0;
+                for (int i = 0; i < count; i++) {
+                    if (straightIndex[i])
+                    if (raw[i].val > highestStr) highestStr = raw[i].val;
+                }
+                for (int i = 0; i < count; i++) {
+                    if (straightIndex[i])
+                    if (secondHighestStr < raw[i].val && raw[i].val != highestStr) secondHighestStr = raw[i].val;
+                }
+                if (highestStr == 14 && secondHighestStr == 5) hasWheel = true;
+
+                if (!hasWheel) {
                     for (int i = 0; i < rawList.size(); i++) {
                         if (straightIndex[i]) {
                             if (index == 0) {
@@ -366,23 +355,13 @@ public abstract class PokerPlayer {
                         }
                     }
                 } else {
+                    index = 5;
                     for (int i = 0; i < count; i++) {
-                        if (straightIndex[i] && raw[i].val != 14) {
-                            if (index == 0) {
-                                index = raw[i].val;
-                                straightList.add(raw[i]);
-                            } else if (raw[i].val == index - 1) {
-                                straightList.add(raw[i]);
-                                index--;
-                            }
-                        }
-                    }
-                    if (straightList.size() != 5) {
-                        for (int i = 0; i < count; i++) {
-                            if (straightIndex[i] && raw[i].val == 14) {
-                                straightList.add(raw[i]);
-                                break;
-                            }
+                        if (straightIndex[i] && raw[i].val == index) {
+                            straightList.add(raw[i]);
+                            index--;
+                            if (index == 1) index = 14;
+                            i = -1;
                         }
                     }
                 }
@@ -392,9 +371,24 @@ public abstract class PokerPlayer {
             case 9:
                 LinkedList<Card> straightFlushList = new LinkedList<>();
                 int index2 = 0;
-                if (!wheel) {
+
+
+                boolean hasWheel2 = false;
+                int highestStr2 = 0;
+                int secondHighestStr2 = 0;
+                for (int i = 0; i < count; i++) {
+                    if (SFindex[i])
+                        if (raw[i].val > highestStr2) highestStr2 = raw[i].val;
+                }
+                for (int i = 0; i < count; i++) {
+                    if (SFindex[i])
+                        if (secondHighestStr2 < raw[i].val && raw[i].val != highestStr2) secondHighestStr2 = raw[i].val;
+                }
+                if (highestStr2 == 14 && secondHighestStr2 == 5) hasWheel2 = true; // the issue is that 7
+
+                if (!hasWheel2) {
                     for (int i = 0; i < rawList.size(); i++) {
-                        if (straightIndex[i] && flushIndex[i]) {
+                        if (SFindex[i]) {
                             if (index2 == 0) {
                                 index2 = raw[i].val;
                                 straightFlushList.add(raw[i]);
@@ -405,23 +399,13 @@ public abstract class PokerPlayer {
                         }
                     }
                 } else {
+                    index2 = 5;
                     for (int i = 0; i < count; i++) {
-                        if (straightIndex[i] && flushIndex[i] && raw[i].val != 14) {
-                            if (index2 == 0) {
-                                index2 = raw[i].val;
-                                straightFlushList.add(raw[i]);
-                            } else if (raw[i].val == index2 - 1) {
-                                straightFlushList.add(raw[i]);
-                                index2--;
-                            }
-                        }
-                    }
-                    if (straightFlushList.size() != 5) {
-                        for (int i = 0; i < count; i++) {
-                            if (straightIndex[i] && raw[i].val == 14) {
-                                straightFlushList.add(raw[i]);
-                                break;
-                            }
+                        if (SFindex[i] && raw[i].val == index2) {
+                            straightFlushList.add(raw[i]);
+                            index2--;
+                            if (index2 == 1) index2 = 14;
+                            i = -1;
                         }
                     }
                 }
@@ -489,7 +473,6 @@ public abstract class PokerPlayer {
     }
 
     public Card[] bestHand(Card[] board) {
-        Card[] toReturn = new Card[7];
         if (board[0] == null) {
             return Arrays.copyOf(holeCards, 2);
         } else {
@@ -550,6 +533,10 @@ public abstract class PokerPlayer {
     }
 
     public int getBet() {
+        return getTotalBet();
+    }
+
+    public int getActualBet() {
         return getTotalBet() - getFrontMoney();
     }
 
@@ -562,8 +549,8 @@ public abstract class PokerPlayer {
         }
 
         //first row is board, second is me, the rest are other players
-        Card[][] eq = new Card[1+numPlayers][];
-        for (int i = 1; i < 1+numPlayers; i++) {
+        Card[][] eq = new Card[1 + numPlayers][];
+        for (int i = 1; i < 1 + numPlayers; i++) {
             eq[i] = new Card[2];
         }
         eq[0] = board;
@@ -578,30 +565,10 @@ public abstract class PokerPlayer {
             else if (board[i - 2] != null) blacklist[i] = board[i - 2];
         }
         Deck deck = new Deck(blacklist);
-        //System.out.println(deck.mainDeck.toString());
         int[] counts = new int[3];
         eqIterate(counts, eq, deck, smps);
 
         return counts;
-    }
-
-    //Method to calculate the nCr value
-    long nCr(long n, long r)
-    {
-        BigInteger x = fact(n);
-        BigInteger y = fact(r);
-        BigInteger z = fact((n-r));
-        z = z.multiply(y);
-        x = x.divide(z);
-        return x.longValue();
-    }
-    //Method to calculate the factorial of the number
-    BigInteger fact(long n)
-    {
-        BigInteger res = new BigInteger("1");
-        for (int i = 2; i <= n; i++)
-            res = res.multiply(new BigInteger(Integer.toString(i)));
-        return res;
     }
 
     private void eqIterate(int[] counts, Card[][] eq2, Deck deck2, int smps) {
@@ -611,15 +578,17 @@ public abstract class PokerPlayer {
         int counter = 0;
         Card[][] eq = copyEq(eq2);
         Deck deck = deck2.deepCopy();
+        int boardSize = 0;
+        for (Card c : eq[0]) if (c != null) boardSize++;
 
         if (debug) System.out.println("un shuffled deck: " + deck.mainDeck.toString());
         int deckSize = deck.mainDeck.size();
         for (int k = 0; k < samples; k++) {
-            for (int i = 0; i < deckSize * 7; i++) {
+            for (int i = 0; i < deckSize * 4; i++) {
                 int j = (int) (Math.random() * deckSize);
                 deck.mainDeck.add(deck.mainDeck.remove(j));
             }
-            int size = 5 + (2 * (eq2.length - 2));
+            int size = (5 - boardSize) + (2 * (eq2.length - 2));
             if (debug) System.out.println("shuffled deck: " + deck.mainDeck.toString());
             LinkedList<Card> boardAndHand = deck.deepCopy().mainDeck;
             int index = 0;
@@ -630,7 +599,7 @@ public abstract class PokerPlayer {
                     eq[i][1] = boardAndHand.get(index).copyOf();
                     index++;
                 }
-                for (int i = 0; i < 5; i++) {
+                for (int i = boardSize; i < 5; i++) {
                     eq[0][i] = boardAndHand.get(index).copyOf();
                     index++;
                 }
@@ -657,10 +626,6 @@ public abstract class PokerPlayer {
                 }
             }
         }
-
-
-
-        System.out.println("returned normally" + counter);
     }
 
     private Card[][] copyEq(Card[][] eq) {
@@ -691,8 +656,18 @@ public abstract class PokerPlayer {
         return globalFrontMoney;
     }
 
-    public int getPotOdds() {
-        return getBet() / (getPot() + getBet());
+    public double getPotOdds() {
+        return (double) getBet() / (double) (getPot() + getBet());
+    }
+
+    public int idealBet(double equity) {
+        double b = (double) getBet();
+        double p = (double) getPot();
+        double y = equity;
+        double a = (double) parent.activePlayers().size() - 1.0;
+        double numerator = -(p * (y - b));
+        double denominator = (a * b * y) - 1;
+        return sanitizeBet((int) (numerator / denominator));
     }
 
     public int getPot() {
