@@ -191,7 +191,7 @@ public abstract class PokerPlayer {
                     } else if (raw[j].val == index) {
                         straightIndex[j] = true;
                     }
-                    if (index == 2) {
+                    if (index == 2 && straightCount >= 4) {
                         for (int k = 0; k < count; k++) {
                             if (raw[k].val == 14) {
                                 straightIndex[k] = true;
@@ -255,7 +255,7 @@ public abstract class PokerPlayer {
                             SFindex[i] = true;
                         }
                     }
-                    if (index == 2) {
+                    if (index == 2 && SFcount >= 4) {
                         for (int k = 0; k < count; k++) {
                             if (raw[k].val == 14 && straightIndex[k] && flushIndex[k]) {
                                 SFcount++;
@@ -274,6 +274,10 @@ public abstract class PokerPlayer {
 
         LinkedList<Card> rawList = new LinkedList<>(Arrays.asList(raw));
         Card[] toReturn = new Card[7];
+        /*System.out.println(Arrays.toString(raw));
+        System.out.println(Arrays.toString(straightIndex));
+        System.out.println(Arrays.toString(flushIndex));
+        System.out.println(strength);*/
         /* COMPUTE FINAL BEST HAND */
         switch (strength) {
             case 0:
@@ -343,6 +347,10 @@ public abstract class PokerPlayer {
                 if (highestStr == 14 && secondHighestStr == 5) hasWheel = true;
 
                 if (!hasWheel) {
+                    if (highestStr == 14 && secondHighestStr == 13) index = 15;
+                    else if (highestStr == 14) {
+                        index = secondHighestStr + 1;
+                    }
                     for (int i = 0; i < rawList.size(); i++) {
                         if (straightIndex[i]) {
                             if (index == 0) {
@@ -384,9 +392,13 @@ public abstract class PokerPlayer {
                     if (SFindex[i])
                         if (secondHighestStr2 < raw[i].val && raw[i].val != highestStr2) secondHighestStr2 = raw[i].val;
                 }
-                if (highestStr2 == 14 && secondHighestStr2 == 5) hasWheel2 = true; // the issue is that 7
+                if (highestStr2 == 14 && secondHighestStr2 == 5) hasWheel2 = true;
 
                 if (!hasWheel2) {
+                    if (highestStr2 == 14 && secondHighestStr2 == 13) index2 = 15;
+                    else if (highestStr2 == 14) {
+                        index2 = secondHighestStr2 + 1;
+                    }
                     for (int i = 0; i < rawList.size(); i++) {
                         if (SFindex[i]) {
                             if (index2 == 0) {

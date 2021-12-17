@@ -1366,15 +1366,15 @@ public class PokerMain {
 
 	void unitTest() {
 		PokerPlayer pl = players.get(0);
-		pl.holeCards[0] = new Card(14,4);
-		pl.holeCards[1] = new Card(4,4);
-		/*Card[] board = new Card[5];
-		board[0] = new Card(3,4);
-		board[1] = new Card(2,4);
-		board[2] = new Card(6,2);
-		board[3] = new Card(7,4);
-		board[4] = new Card(5,4);
-		System.out.println("SF wheel:" + Arrays.toString(pl.bestHand(board, pl.holeCards)));*/
+		pl.holeCards[0] = new Card(14,1);
+		pl.holeCards[1] = new Card(5,1);
+		Card[] board = new Card[5];
+		board[0] = new Card(6,1);
+		board[1] = new Card(4,1);
+		board[2] = new Card(2,1);
+		board[3] = new Card(3,1);
+		board[4] = new Card(3,3);
+		System.out.println("penis:" + Arrays.toString(pl.bestHand(board, pl.holeCards)));
 
 
 		/*int samples = 10000;
