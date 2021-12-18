@@ -672,17 +672,21 @@ public abstract class PokerPlayer {
     }
 
     public double getPotOdds() {
-        return (double) getBet() / (double) (getPot() + getBet());
+        return (double) getActualBet() / (double) (getPot() + getActualBet());
     }
 
-    public int idealBet(double equity) {
-        double b = (double) getBet();
-        double p = (double) getPot();
+    public double getPotOdds(double actualBet, double actualPot) {
+        return (double) actualBet / (double) (actualPot + actualBet);
+    }
+
+    public int idealBet(double equity, double actualBet, double actualPot) {
+        double b = actualBet;
+        double p = actualPot;
         double y = equity;
         double a = (double) parent.activePlayers().size() - 1.0;
-        double numerator = -(p * (y - b));
-        double denominator = (a * b * y) - 1;
-        return sanitizeBet((int) (numerator / denominator));
+        double numerator = -((b+p) * y - b);
+        double denominator = (a * y) - 1;
+        return (int) (numerator / denominator);
     }
 
     public int getPot() {

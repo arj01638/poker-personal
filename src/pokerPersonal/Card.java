@@ -2,10 +2,10 @@ package pokerPersonal;
 
 public class Card implements Comparable<Card> {
 
-	final int val;
-	final int suit;
+	public final int val;
+	public final int suit;
 	
-	Card(int value, int suit) {
+	public Card(int value, int suit) {
 		this.val = value;
 		this.suit = suit;
 	} // Card

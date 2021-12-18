@@ -22,7 +22,7 @@ public class PokerMain {
     final int SLEEP = 0;
 
 
-    final LinkedList<PokerPlayer> players = new LinkedList<>();
+    public final LinkedList<PokerPlayer> players = new LinkedList<>();
     int BBpos;
     int SBpos;
     Deck deck;
@@ -46,7 +46,7 @@ public class PokerMain {
 
     StringBuilder globalString;
 
-    PokerMain() {
+    public PokerMain() {
         globalString = new StringBuilder();
     } // PokerMain
 
@@ -60,7 +60,7 @@ public class PokerMain {
         }
     }
 
-    void definePlayers() {
+    public void definePlayers() {
 
         /*
          * Calls preflop.
@@ -91,7 +91,7 @@ public class PokerMain {
                 double equity = ((double) arr[2]) / (double) (arr[0] + arr[1] + arr[2]);
                 qPrint(fullName() + ": equity is " + equity + " and potOdds is " + potOdds);
                 if (equity > potOdds)
-                    return idealBet(equity);
+                    return sanitizeBet(idealBet(equity, (double)getActualBet(), (double)getPot()));
                 else return -1;
             }
         });
@@ -102,7 +102,7 @@ public class PokerMain {
          * Else, makes random move.
          * After 50 hands, gets bored and bets progressively more while never folding.
          */
-        addPlayer(false, "Newbie", new PokerPlayer(this) {
+        addPlayer(true, "Newbie", new PokerPlayer(this) {
             @Override
             int evaluate() {
                 if (parent.hand > 50) return sanitizeBet((BB * ((parent.hand - 50)) / 5));
@@ -120,7 +120,7 @@ public class PokerMain {
          * Else, calls.
          * Never folds.
          */
-        addPlayer(false, "Calling Station", new PokerPlayer(this) {
+        addPlayer(true, "Calling Station", new PokerPlayer(this) {
             @Override
             public int evaluate() {
                 int betFacing = getBet();
@@ -160,7 +160,7 @@ public class PokerMain {
          * If facing a bet higher than the amount it wants to bet,
          * by golly, it waited twenty orbits to get aces so it's gonna see a showdown.
          */
-        addPlayer(false, "The Nit", new PokerPlayer(this) {
+        addPlayer(true, "The Nit", new PokerPlayer(this) {
             @Override
             public int evaluate() {
                 int betFacing = getBet();
