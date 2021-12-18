@@ -1,3 +1,5 @@
+package pokerPersonal;
+
 import java.util.Arrays;
 import java.util.LinkedList;
 
@@ -9,7 +11,6 @@ public abstract class PokerPlayer {
     public int bank;
     public final Card[] holeCards = new Card[2];
     public boolean inTheHand = true;
-    public boolean allIn = false;
     public double totalWinnings = 0;
     public String name = "";
     public int frontMoney = 0;
@@ -552,8 +553,11 @@ public abstract class PokerPlayer {
         return getTotalBet() - getFrontMoney();
     }
 
-    //returns [countTheyWin,countWeChop,countIWin]
     public int[] getEquity(int numPlayers, Card[] board2, int smps) {
+        return getEquity(holeCards, numPlayers, board2, smps);
+    }
+    //returns [countTheyWin,countWeChop,countIWin]
+    public int[] getEquity(Card[] cards, int numPlayers, Card[] board2, int smps) {
         Card[] board = new Card[5];
         for (int i = 0; i < 5; i++) {
             if (board2[i] == null) board[i] = null;
@@ -566,14 +570,14 @@ public abstract class PokerPlayer {
             eq[i] = new Card[2];
         }
         eq[0] = board;
-        eq[1][0] = holeCards[0];
-        eq[1][1] = holeCards[1];
+        eq[1][0] = cards[0];
+        eq[1][1] = cards[1];
 
         int count = 0;
         for (Card c : board) if (c != null) count++;
         Card[] blacklist = new Card[2 + count];
         for (int i = 0; i < 2 + count; i++) {
-            if (i < 2) blacklist[i] = holeCards[i];
+            if (i < 2) blacklist[i] = cards[i];
             else if (board[i - 2] != null) blacklist[i] = board[i - 2];
         }
         Deck deck = new Deck(blacklist);
@@ -587,7 +591,6 @@ public abstract class PokerPlayer {
         final boolean debug = false;
         final long samples = smps;
 
-        int counter = 0;
         Card[][] eq = copyEq(eq2);
         Deck deck = deck2.deepCopy();
         int boardSize = 0;

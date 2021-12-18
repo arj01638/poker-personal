@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="poker-personal:jar">
+    <output-path>$PROJECT_DIR$/classes/artifacts/poker_personal_jar</output-path>
+    <root id="archive" name="poker-personal.jar">
+      <element id="module-output" name="poker-personal" />
+    </root>
+  </artifact>
+</component>
