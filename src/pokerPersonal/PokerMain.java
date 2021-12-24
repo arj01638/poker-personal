@@ -91,7 +91,7 @@ public class PokerMain {
                 double equity = ((double) arr[2]) / (double) (arr[0] + arr[1] + arr[2]);
                 qPrint(fullName() + ": equity is " + equity + " and potOdds is " + potOdds);
                 if (equity > potOdds)
-                    return sanitizeBet(idealBet(equity, (double)getActualBet(), (double)getPot()));
+                    return sanitizeBet((int) idealBet(equity, (double)getActualBet(), (double)getPot()));
                 else return -1;
             }
         });

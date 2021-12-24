@@ -679,14 +679,14 @@ public abstract class PokerPlayer {
         return (double) actualBet / (double) (actualPot + actualBet);
     }
 
-    public int idealBet(double equity, double actualBet, double actualPot) {
+    public double idealBet(double equity, double actualBet, double actualPot) {
         double b = actualBet;
         double p = actualPot;
         double y = equity;
         double a = (double) parent.activePlayers().size() - 1.0;
         double numerator = -((b+p) * y - b);
         double denominator = (a * y) - 1;
-        return (int) (numerator / denominator);
+        return (numerator / denominator);
     }
 
     public int getPot() {
